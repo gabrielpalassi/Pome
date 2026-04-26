@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Pome
+Comment=iCloud Drive for your Linux desktop
+Exec=pome
+Icon=io.github.gabrielpalassi.Pome
+Terminal=false
+Categories=Utility;
+StartupNotify=false

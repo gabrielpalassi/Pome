@@ -1,0 +1,13 @@
+export const APP_ID = "io.github.gabrielpalassi.Pome";
+export const APP_NAME = "Pome";
+export const APP_DESCRIPTION = "iCloud Drive for your Linux desktop.";
+export const NOTIFICATION_ICON = `${APP_ID}.notification`;
+export const REMOTE_NAME = "iclouddrive";
+export const REMOTE = `${REMOTE_NAME}:`;
+export const DRIVE_NAME = "iCloud Drive";
+export const DRIVE_DIR = "iCloud Drive";
+export const MOUNT_FLAGS = ["--vfs-cache-mode", "full", "--vfs-cache-poll-interval", "30s", "--dir-cache-time", "30s"];
+export const MOUNT_READY_ATTEMPTS = 10;
+export const MOUNT_READY_DELAY_MS = 100;
+export const BACKGROUND_REQUEST_TIMEOUT_MS = 10_000;
+export const NOTIFICATION_ACTION_TIMEOUT_MS = 5 * 60 * 1000;

@@ -1,0 +1,29 @@
+{
+  "name": "pome",
+  "version": "0.1.0",
+  "description": "iCloud Drive for your Linux desktop.",
+  "type": "module",
+  "bin": {
+    "pome": "dist/pome.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --fix",
+    "fmt": "prettier --write .",
+    "check": "npm run typecheck && npm run lint && npm run fmt"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2",
+    "puppeteer": "^24.31.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.0"
+  }
+}
