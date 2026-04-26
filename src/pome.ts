@@ -1,27 +1,45 @@
 #!/usr/bin/env node
 
 import process from "node:process";
-import { APP_NAME, MOUNT_READY_ATTEMPTS, MOUNT_READY_DELAY_MS, REMOTE_NAME } from "./lib/constants.js";
-import { commandExists, getHostMountDir, inFlatpak } from "./lib/host.js";
+import path from "node:path";
+import {
+  APP_DESCRIPTION,
+  APP_ID,
+  APP_NAME,
+  MOUNT_READY_ATTEMPTS,
+  MOUNT_READY_DELAY_MS,
+  REMOTE_NAME,
+} from "./lib/constants.js";
+import { commandExists, getHostMountDir, getHostUserConfigDir, hostRun, inFlatpak } from "./lib/host.js";
 import { notifyMissingRclone, notifyMissingRemote, notifyMountFailure, notifySuccess } from "./lib/notifications.js";
 import { acquireSingleInstanceLock } from "./lib/lock.js";
 import { createMinimalRemote, hasRemote, createMountProcess, isMounted } from "./lib/rclone.js";
 import { signIn } from "./lib/sign-in.js";
-import { requestBackgroundAutostart } from "./lib/background.js";
 import type { MountProcess } from "./lib/types.js";
-import { log, sleep } from "./lib/utils.js";
+import { log, shellQuote, sleep } from "./lib/utils.js";
 
 // Ensure only a single instance of the app is running
 if (!acquireSingleInstanceLock()) process.exit(0);
 
 // Ensure the app is set to autostart if running in a Flatpak
 if (inFlatpak) {
-  const autostartEnabled = await requestBackgroundAutostart();
-  if (autostartEnabled) {
-    log(`${APP_NAME} autostart is enabled through the background portal.`);
-  } else {
-    log(`${APP_NAME} autostart was not enabled by the background portal.`);
-  }
+  const configDir = await getHostUserConfigDir();
+  const autostartDir = path.join(configDir, "autostart");
+  const desktopPath = path.join(autostartDir, `${APP_ID}.desktop`);
+  const desktop = [
+    "[Desktop Entry]",
+    "Type=Application",
+    `Name=${APP_NAME}`,
+    `Comment=${APP_DESCRIPTION}`,
+    `Exec=flatpak run --command=pome ${APP_ID}`,
+    `Icon=${APP_ID}`,
+    "Terminal=false",
+    "X-GNOME-Autostart-enabled=true",
+    "",
+  ].join("\n");
+
+  await hostRun(["mkdir", "-p", autostartDir]);
+  await hostRun(["sh", "-lc", `cat > ${shellQuote(desktopPath)} <<'EOF'\n${desktop}EOF\n`]);
 }
 
 // Check for rclone

@@ -42,7 +42,7 @@ flatpak run io.github.gabrielpalassi.Pome
 
 On first launch, Pome prepares an iCloud Drive remote for `rclone` and asks you to sign in. Click `Sign In` in the notification, complete the browser sign-in, and Pome will connect your iCloud Drive folder.
 
-After the first launch, Pome asks your desktop for permission to run in the background and reconnect iCloud Drive when you log in.
+After the first launch, Pome adds itself to your desktop autostart entries so it can reconnect iCloud Drive when you log in.
 
 If iCloud needs attention later, Pome will show a notification with actions:
 
