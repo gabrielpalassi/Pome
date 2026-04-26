@@ -29,7 +29,7 @@ export async function createMinimalRemote(): Promise<boolean> {
       `mkdir -p "$(dirname ${escapedConfigPath})"`,
       `touch ${escapedConfigPath}`,
       `if ! grep -qx '\\[${REMOTE_NAME}\\]' ${escapedConfigPath}; then`,
-      `printf '\\n[${REMOTE_NAME}]\\ntype = ${REMOTE}\\n' >> ${escapedConfigPath}`,
+      `printf '\\n[${REMOTE_NAME}]\\ntype = ${REMOTE_NAME}\\n' >> ${escapedConfigPath}`,
       "fi",
     ].join("\n"),
   ]);
