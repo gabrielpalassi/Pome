@@ -4,6 +4,8 @@ Pome gives Linux desktops a quiet iCloud Drive folder.
 
 > ⚠️ Pome is currently beta software. It is ready for testing, but you may still run into rough edges, missing features, or changes between releases.
 
+<img src="assets/screenshot.png" alt="Pome screenshot" width="640">
+
 It runs in the background, mounts iCloud Drive through `rclone`, and keeps the folder available at `~/iCloud Drive`. When the connection needs attention, Pome uses desktop notifications instead of a permanent window: you can retry the mount, sign in again, or let it keep waiting in the background.
 
 ## Running Pome
