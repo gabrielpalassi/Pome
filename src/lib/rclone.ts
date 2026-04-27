@@ -42,8 +42,8 @@ export async function createMinimalRemote(): Promise<boolean> {
 }
 
 export async function createMountProcess(mountDir: string): Promise<MountProcess> {
-  const mountDirExists = await hostRun(["test", "-d", mountDir]);
-  if (!mountDirExists) await hostRun(["mkdir", "-p", mountDir]);
+  const mountDirReady = await hostRun(["mkdir", "-p", mountDir]);
+  if (!mountDirReady) log(`Could not create mount directory at ${mountDir}.`);
 
   const args = ["rclone", "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
   return hostSpawn(args, { stdio: "inherit" }) as MountProcess;
