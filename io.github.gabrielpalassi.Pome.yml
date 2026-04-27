@@ -46,10 +46,6 @@ modules:
       - ln -s /app/lib/pome/dist/pome.js /app/bin/pome
       - install -Dm644 data/io.github.gabrielpalassi.Pome.desktop /app/share/applications/io.github.gabrielpalassi.Pome.desktop
       - install -Dm644 data/io.github.gabrielpalassi.Pome.metainfo.xml /app/share/metainfo/io.github.gabrielpalassi.Pome.metainfo.xml
-      - install -Dm644 data/icons/hicolor/128x128/apps/io.github.gabrielpalassi.Pome.png /app/share/icons/hicolor/128x128/apps/io.github.gabrielpalassi.Pome.png
-      - install -Dm644 data/icons/hicolor/128x128/apps/io.github.gabrielpalassi.Pome.notification.png /app/share/icons/hicolor/128x128/apps/io.github.gabrielpalassi.Pome.notification.png
-      - install -Dm644 data/icons/hicolor/256x256/apps/io.github.gabrielpalassi.Pome.png /app/share/icons/hicolor/256x256/apps/io.github.gabrielpalassi.Pome.png
-      - install -Dm644 data/icons/hicolor/256x256/apps/io.github.gabrielpalassi.Pome.notification.png /app/share/icons/hicolor/256x256/apps/io.github.gabrielpalassi.Pome.notification.png
-      - install -Dm644 data/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.png /app/share/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.png
+      - install -Dm644 data/icons/hicolor/scalable/apps/io.github.gabrielpalassi.Pome.svg /app/share/icons/hicolor/scalable/apps/io.github.gabrielpalassi.Pome.svg
       - install -Dm644 data/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.notification.png /app/share/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.notification.png
       - install -Dm644 data/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.Pome-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.Pome-symbolic.svg
