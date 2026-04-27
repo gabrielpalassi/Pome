@@ -5,7 +5,6 @@ export const NOTIFICATION_ICON = `${APP_ID}.notification`;
 export const REMOTE_NAME = "iclouddrive";
 export const REMOTE = `${REMOTE_NAME}:`;
 export const DRIVE_NAME = "iCloud Drive";
-export const DRIVE_DIR = "iCloud Drive";
 export const MOUNT_FLAGS = ["--vfs-cache-mode", "full", "--vfs-cache-poll-interval", "30s", "--dir-cache-time", "30s"];
 export const MOUNT_READY_ATTEMPTS = 10;
 export const MOUNT_READY_DELAY_MS = 100;

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
-import { DRIVE_DIR } from "./constants.js";
+import { DRIVE_NAME } from "./constants.js";
 import { shellQuote } from "./utils.js";
 import type { CommandResult, HostSpawnOptions } from "./types.js";
 
@@ -58,7 +58,7 @@ export async function getHostUserConfigDir(): Promise<string> {
 }
 
 export async function getHostMountDir(): Promise<string> {
-  return path.join(await getHostHomeDir(), DRIVE_DIR);
+  return path.join(await getHostHomeDir(), DRIVE_NAME);
 }
 
 export async function commandExists(command: string): Promise<boolean> {
