@@ -38,12 +38,14 @@ if (inFlatpak) {
     "",
   ].join("\n");
 
-  await hostRun(["mkdir", "-p", autostartDir]);
-  await hostRun(["sh", "-lc", `cat > ${shellQuote(desktopPath)} <<'EOF'\n${desktop}EOF\n`]);
+  const autostartDirReady = await hostRun(["mkdir", "-p", autostartDir]);
+  const autostartEntryReady = await hostRun(["sh", "-lc", `cat > ${shellQuote(desktopPath)} <<'EOF'\n${desktop}EOF\n`]);
+  if (!(autostartDirReady && autostartEntryReady)) log(`Could not create autostart entry at ${desktopPath}.`);
 }
 
 // Check for rclone
 if (!(await commandExists("rclone"))) {
+  log("rclone is not installed or is not available on PATH.");
   await notifyMissingRclone();
   process.exit(1);
 }
