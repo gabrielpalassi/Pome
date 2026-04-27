@@ -6,17 +6,17 @@ Pome gives Linux desktops a quiet iCloud Drive folder.
 
 <img src="assets/screenshot.png" alt="Pome screenshot" width="640">
 
-It runs in the background, mounts iCloud Drive through `rclone`, and keeps the folder available at `~/iCloud Drive`. When the connection needs attention, Pome uses desktop notifications instead of a permanent window: you can retry the mount, sign in again, or let it keep waiting in the background.
+It runs in the background, mounts iCloud Drive through `rclone`, and keeps it available at `~/iCloud Drive`. When the connection needs attention, Pome lets you respond from desktop notifications: retry the mount, sign in again, or leave it waiting in the background.
 
 ## Running Pome
 
-Install `rclone` before running Pome. Pome connects to iCloud Drive through the `rclone` command on your system, so it needs to be installed on the host rather than inside the Flatpak sandbox. Pome requires `rclone` 1.69.0 or newer, the first release with iCloud Drive support; check your installed version with:
+Install `rclone` before running Pome. Pome requires `rclone` 1.69.0 or newer, the first release with iCloud Drive support; check your installed version with:
 
 ```sh
 rclone version
 ```
 
-The safest way to get a recent enough version is the official `rclone` installer:
+The safest way to get a recent version is the official `rclone` installer:
 
 ```sh
 sudo -v
@@ -93,7 +93,7 @@ Install Node dependencies:
 npm ci
 ```
 
-Run the project checks. This type-checks the code, applies ESLint fixes, and formats files with Prettier:
+Run the project checks to type-check the code, apply ESLint fixes, and format files with Prettier:
 
 ```sh
 npm run check
@@ -128,4 +128,4 @@ flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalass
 flatpak run io.github.gabrielpalassi.Pome
 ```
 
-Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when a suitable portal exists, and keep host-side commands limited to work that must happen outside the sandbox.
+Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
