@@ -1,4 +1,4 @@
-# Pome
+# 🍎 Pome
 
 Pome gives Linux desktops a quiet iCloud Drive folder.
 
@@ -10,7 +10,7 @@ It runs in the background, mounts iCloud Drive through `rclone`, and keeps it av
 
 ## Running Pome
 
-Install `rclone` before running Pome. Pome requires `rclone` 1.69.0 or newer, the first release with iCloud Drive support; check your installed version with:
+Install `rclone` before running Pome. Pome requires `rclone` 1.69.0 or newer (the first release with iCloud Drive support), check your installed version with:
 
 ```sh
 rclone version
