@@ -76,7 +76,7 @@ flatpak install flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.
 Build and install Pome locally:
 
 ```sh
-flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.yml
+npm run flatpak-install
 ```
 
 Run the local build:
@@ -124,7 +124,7 @@ npm run build
 If your change touches Flatpak packaging or desktop integration, also build and run the Flatpak locally:
 
 ```sh
-flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.yml
+npm run flatpak-install
 flatpak run io.github.gabrielpalassi.Pome
 ```
 

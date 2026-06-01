@@ -4,7 +4,7 @@ import {
   notifySuccess,
   notifyUpdateSessionFailure,
 } from "./notifications.js";
-import { hasRemote, updateSession } from "./rclone.js";
+import { hasRemote, reconnectRemoteInTerminal, updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
 
@@ -19,7 +19,7 @@ export async function signIn(): Promise<void> {
       headless: false,
       defaultViewport: null,
       timeout: 0,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ozone-platform=wayland"],
     });
 
     const page = (await browser.pages())[0] ?? (await browser.newPage());
@@ -95,7 +95,7 @@ export async function signIn(): Promise<void> {
     );
   } catch (error: unknown) {
     log(`Failed to get iCloud login tokens: ${error instanceof Error ? error.message : String(error)}`);
-    await notifySignInFailure();
+    if (!(await reconnectRemoteInTerminal())) await notifySignInFailure();
     return;
   } finally {
     if (browser) await browser.close();
