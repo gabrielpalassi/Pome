@@ -7,7 +7,7 @@
     <name>Gabriel Palassi</name>
   </developer>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MIT</project_license>
+  <project_license>AGPL-3.0-only</project_license>
   <url type="homepage">https://github.com/gabrielpalassi/Pome</url>
   <description>
     <p>Pome brings iCloud Drive to Linux desktops as a quiet folder that stays available in the background.</p>
@@ -23,6 +23,6 @@
   <launchable type="desktop-id">io.github.gabrielpalassi.Pome.desktop</launchable>
   <content_rating type="oars-1.1" />
   <releases>
-    <release version="0.1.0" date="2026-04-24" />
+    <release version="0.1.0" date="2026-04-26" />
   </releases>
 </component>
