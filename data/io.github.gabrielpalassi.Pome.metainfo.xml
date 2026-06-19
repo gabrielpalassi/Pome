@@ -11,12 +11,12 @@
   <url type="homepage">https://github.com/gabrielpalassi/Pome</url>
   <description>
     <p>Pome brings iCloud Drive to Linux desktops as a quiet folder that stays available in the background.</p>
-    <p>It mounts iCloud Drive through rclone and keeps your files available from ~/iCloud Drive. After the first launch, Pome starts automatically when you log in so it can reconnect your drive without getting in the way.</p>
+    <p>It mounts iCloud Drive through rclone and keeps your files available in ~/iCloud Drive. After the first launch, Pome starts automatically when you log in so it can reconnect your drive without getting in the way.</p>
     <p>When iCloud needs attention, Pome sends a desktop notification with actions to retry the connection or sign in again.</p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <caption>Pome keeps iCloud Drive connected from the desktop</caption>
+      <caption>iCloud Drive connected and available in Files</caption>
       <image>https://raw.githubusercontent.com/gabrielpalassi/Pome/master/assets/screenshot.png</image>
     </screenshot>
   </screenshots>
