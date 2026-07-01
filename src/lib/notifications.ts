@@ -85,6 +85,10 @@ export async function notifyMissingRclone(): Promise<void> {
   );
 }
 
+export async function notifyAlreadyRunning(): Promise<void> {
+  await notify(`${APP_NAME} is already running`, `${APP_NAME} is already open and keeping ${DRIVE_NAME} connected.`);
+}
+
 export async function notifyMountFailure(): Promise<string> {
   return notify(
     `Can't connect to ${DRIVE_NAME}`,

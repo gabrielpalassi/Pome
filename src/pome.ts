@@ -11,7 +11,13 @@ import {
   REMOTE_NAME,
 } from "./lib/constants.js";
 import { commandExists, getHostMountDir, getHostUserConfigDir, hostRun, inFlatpak } from "./lib/host.js";
-import { notifyMissingRclone, notifyMissingRemote, notifyMountFailure, notifySuccess } from "./lib/notifications.js";
+import {
+  notifyAlreadyRunning,
+  notifyMissingRclone,
+  notifyMissingRemote,
+  notifyMountFailure,
+  notifySuccess,
+} from "./lib/notifications.js";
 import { acquireSingleInstanceLock } from "./lib/lock.js";
 import { createMinimalRemote, hasRemote, createMountProcess, isMounted } from "./lib/rclone.js";
 import { signIn } from "./lib/sign-in.js";
@@ -19,7 +25,10 @@ import type { MountProcess } from "./lib/types.js";
 import { log, shellQuote, sleep } from "./lib/utils.js";
 
 // Ensure only a single instance of the app is running
-if (!acquireSingleInstanceLock()) process.exit(0);
+if (!acquireSingleInstanceLock()) {
+  await notifyAlreadyRunning();
+  process.exit(0);
+}
 
 // Ensure the app is set to autostart if running in a Flatpak
 if (inFlatpak) {
