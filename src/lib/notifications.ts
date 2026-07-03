@@ -103,6 +103,20 @@ export async function notifyMountFailure(): Promise<string> {
   );
 }
 
+export async function notifySessionExpired(): Promise<string> {
+  return notify(
+    `${DRIVE_NAME} needs sign in`,
+    `Your ${DRIVE_NAME} session is no longer valid. Sign in again to reconnect.`,
+    {
+      critical: true,
+      actions: [
+        { id: "signin", label: "Sign In" },
+        { id: "restart", label: "Try Again" },
+      ],
+    },
+  );
+}
+
 export async function notifyMissingRemote(): Promise<string> {
   return notify(
     `${DRIVE_NAME} needs sign in`,
