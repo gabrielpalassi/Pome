@@ -23,6 +23,32 @@ async function maximizeWindow(page: Page): Promise<void> {
   }
 }
 
+function splitCookieHeader(cookieHeader: string): string[] {
+  const cookies: string[] = [];
+  let cookie = "";
+  let quoted = false;
+
+  for (const character of cookieHeader) {
+    if (character === '"') quoted = !quoted;
+
+    if (character === ";" && !quoted) {
+      cookies.push(cookie.trim());
+      cookie = "";
+      continue;
+    }
+
+    cookie += character;
+  }
+
+  if (cookie.trim()) cookies.push(cookie.trim());
+  return cookies;
+}
+
+function getCookieValue(cookie: string): string {
+  const separator = cookie.indexOf("=");
+  return separator === -1 ? "" : cookie.slice(separator + 1);
+}
+
 export async function signIn(): Promise<void> {
   const puppeteer = await import("puppeteer");
   const config: ICloudSession = {};
@@ -102,13 +128,12 @@ export async function signIn(): Promise<void> {
         const cookieHeader = request.headers().cookie;
         if (!cookieHeader) return false;
 
-        const trustCookie = cookieHeader
-          .split(";")
-          .map((cookie) => cookie.trim())
-          .find((cookie) => cookie.startsWith("X-APPLE-WEBAUTH-HSA-TRUST"));
+        const trustCookie = splitCookieHeader(cookieHeader).find((cookie) =>
+          cookie.startsWith("X-APPLE-WEBAUTH-HSA-TRUST"),
+        );
         if (!trustCookie) return false;
 
-        config.token = trustCookie.split("=")[1];
+        config.token = getCookieValue(trustCookie);
         config.cookies = cookieHeader;
         return true;
       },
