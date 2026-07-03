@@ -8,6 +8,7 @@ import { hasRemote, reconnectRemoteInTerminal, updateSession } from "./rclone.js
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
 import type { Page } from "puppeteer";
+import { ICLOUD_URL } from "./constants.js";
 
 async function maximizeWindow(page: Page): Promise<void> {
   try {
@@ -33,7 +34,13 @@ export async function signIn(): Promise<void> {
       headless: false,
       defaultViewport: null,
       timeout: 0,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ozone-platform=wayland", "--start-maximized"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--ozone-platform=wayland",
+        "--start-maximized",
+        `--app=${ICLOUD_URL}`,
+      ],
     });
 
     const page = (await browser.pages())[0] ?? (await browser.newPage());
@@ -80,7 +87,6 @@ export async function signIn(): Promise<void> {
 
     await page.setRequestInterception(true);
     await page.bringToFront();
-    await page.goto("https://www.icloud.com");
 
     const signInButton = await page.waitForSelector(".sign-in-button", {
       timeout: 0,

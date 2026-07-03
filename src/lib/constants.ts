@@ -10,3 +10,4 @@ export const MOUNT_HEALTH_CHECK_DELAY_MS = 30 * 1000;
 export const MOUNT_READY_ATTEMPTS = 10;
 export const MOUNT_READY_DELAY_MS = 100;
 export const NOTIFICATION_ACTION_TIMEOUT_MS = 5 * 60 * 1000;
+export const ICLOUD_URL = "https://www.icloud.com";
