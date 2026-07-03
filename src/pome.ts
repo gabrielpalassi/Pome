@@ -152,8 +152,6 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 //
 
 while (!shutdownRequested) {
-  let mountReady = false;
-
   // Ensure the rclone remote exists
   if (!(await hasRemote())) {
     log(`Missing ${REMOTE_NAME} rclone remote.`);
@@ -174,6 +172,7 @@ while (!shutdownRequested) {
   }
 
   // Wait for the mount to be ready, or for the process to exit
+  let mountReady = false;
   for (let attempt = 0; attempt < MOUNT_READY_ATTEMPTS; attempt += 1) {
     if (hasMountProcessExited(mountProcess)) break;
 
