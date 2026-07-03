@@ -4,11 +4,17 @@ runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
 command: pome
 finish-args:
+  # Required for iCloud sign-in and rclone network access.
   - --share=network
+  # Required by Chromium when rendering the visible Wayland sign-in window.
   - --share=ipc
+  # Shows the iCloud sign-in window from the sandboxed app.
   - --socket=wayland
+  # Enables Chromium rendering acceleration for the sign-in window.
   - --device=dri
+  # Allows flatpak-spawn --host so Pome can manage the user's host rclone mount.
   - --talk-name=org.freedesktop.Flatpak
+  # Keeps Puppeteer's bundled Chromium cache inside the app installation.
   - --env=PUPPETEER_CACHE_DIR=/app/lib/pome/puppeteer-cache
 build-options:
   build-args:
