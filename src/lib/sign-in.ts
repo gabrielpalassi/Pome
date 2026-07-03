@@ -1,10 +1,5 @@
-import {
-  notifySignInRequired,
-  notifySignInFailure,
-  notifySuccess,
-  notifyUpdateSessionFailure,
-} from "./notifications.js";
-import { hasRemote, reconnectRemoteInTerminal, updateSession } from "./rclone.js";
+import { notifySignInFailure, notifySuccess, notifyUpdateSessionFailure } from "./notifications.js";
+import { reconnectRemoteInTerminal, updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
 import type { Page } from "puppeteer";
@@ -61,8 +56,8 @@ export async function signIn(): Promise<void> {
       defaultViewport: null,
       timeout: 0,
       args: [
+        // Required for the bundled Chromium in this Flatpak: without it, launch fails with "No usable sandbox".
         "--no-sandbox",
-        "--disable-setuid-sandbox",
         "--ozone-platform=wayland",
         "--start-maximized",
         `--app=${ICLOUD_URL}`,
