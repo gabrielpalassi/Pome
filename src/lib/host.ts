@@ -10,7 +10,9 @@ export const inFlatpak = fs.existsSync("/.flatpak-info");
 
 export function hostSpawn(args: string[], options: HostSpawnOptions = {}) {
   // Route host work through flatpak-spawn when Pome is sandboxed
-  const [command, commandArgs] = inFlatpak ? ["flatpak-spawn", ["--host", ...args]] : [args[0], args.slice(1)];
+  const [command, commandArgs] = inFlatpak
+    ? ["flatpak-spawn", ["--host", "--watch-bus", ...args]]
+    : [args[0], args.slice(1)];
   return spawn(command, commandArgs, {
     stdio: options.stdio ?? "pipe",
     env: { ...process.env, ...(options.env ?? {}) },
