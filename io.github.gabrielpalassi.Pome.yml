@@ -38,6 +38,18 @@ modules:
       - mkdir -p /app/lib/pome /app/bin /app/share/applications /app/share/metainfo
       - cp -a package.json package-lock.json tsconfig.json src /app/lib/pome/
       - cd /app/lib/pome && /app/node/bin/npm ci --omit=optional
+      - |
+        cd /app/lib/pome
+        chrome_path="$(/app/node/bin/node --input-type=module -e 'import puppeteer from "puppeteer"; process.stdout.write(puppeteer.executablePath())')"
+        if ! test -x "$chrome_path"; then
+          chrome_root="$(dirname "$(dirname "$chrome_path")")"
+          chrome_version="$(basename "$chrome_root" | sed 's/^linux-//')"
+          chrome_zip="$(dirname "$chrome_root")/${chrome_version}-chrome-linux64.zip"
+          rm -rf "$chrome_root"
+          mkdir -p "$chrome_root"
+          unzip -q "$chrome_zip" -d "$chrome_root"
+        fi
+        test -x "$chrome_path"
       - cd /app/lib/pome && /app/node/bin/npm run build
       - cd /app/lib/pome && /app/node/bin/npm prune --omit=dev --omit=optional
       - chmod +x /app/lib/pome/dist/pome.js
