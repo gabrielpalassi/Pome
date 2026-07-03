@@ -6,6 +6,7 @@ import {
   APP_DESCRIPTION,
   APP_ID,
   APP_NAME,
+  MOUNT_HEALTH_CHECK_DELAY_MS,
   MOUNT_READY_ATTEMPTS,
   MOUNT_READY_DELAY_MS,
   REMOTE_NAME,
@@ -16,16 +17,95 @@ import {
   notifyMissingRclone,
   notifyMissingRemote,
   notifyMountFailure,
+  notifySessionExpired,
   notifySuccess,
 } from "./lib/notifications.js";
 import { acquireSingleInstanceLock } from "./lib/lock.js";
-import { createMinimalRemote, hasRemote, createMountProcess, isMounted } from "./lib/rclone.js";
+import {
+  createMinimalRemote,
+  hasRemote,
+  createMountProcess,
+  isMountedAndReadable,
+  mountNeedsSignIn,
+} from "./lib/rclone.js";
 import { signIn } from "./lib/sign-in.js";
 import type { MountProcess } from "./lib/types.js";
 import { log, shellQuote, sleep } from "./lib/utils.js";
 
+//
+// Global state variables
+//
+
+const mountDir = await getHostMountDir();
+let mountProcess: MountProcess | null = null;
+let notifyMountStart = false;
+let shutdownRequested = false;
+let shutdownPromise: Promise<void> | null = null;
+
+//
+// Helper functions
+//
+
+function hasMountProcessExited(mountProcess: MountProcess): boolean {
+  return mountProcess.exitCode !== null || mountProcess.signalCode !== null;
+}
+
+function waitForMountProcessExit(mountProcess: MountProcess): Promise<number | null> {
+  if (hasMountProcessExited(mountProcess)) return Promise.resolve(mountProcess.exitCode);
+
+  return new Promise<number | null>((resolve) => {
+    mountProcess.once("error", () => resolve(127));
+    mountProcess.once("close", resolve);
+  });
+}
+
+async function handleShutdownSignal(): Promise<void> {
+  shutdownRequested = true;
+
+  if (!mountProcess || hasMountProcessExited(mountProcess)) return;
+
+  // kill() only sends the signal, wait until rclone actually closes before exiting Pome
+  mountProcess.kill();
+  await waitForMountProcessExit(mountProcess);
+}
+
+async function handleRecoveryAction(action: string): Promise<void> {
+  if (action === "signin") {
+    await signIn();
+  }
+  if (action === "restart") {
+    notifyMountStart = true;
+  }
+}
+
+async function waitForMountExit(mountProcess: MountProcess): Promise<number | null> {
+  // Always listen for the rclone process to end
+  const exitPromise = waitForMountProcessExit(mountProcess);
+
+  // Keep checking for process exit, failed health check, or shutdown signal
+  while (!shutdownRequested) {
+    // Wait for either rclone to exit or the next health check.
+    const result = await Promise.race([exitPromise, sleep(MOUNT_HEALTH_CHECK_DELAY_MS).then(() => "check" as const)]);
+
+    if (result !== "check") return result;
+
+    // Health check: if the mount is no longer readable, kill the process and return the exit code
+    if (!(await isMountedAndReadable(mountDir))) {
+      log(`Mounted host rclone remote at ${mountDir}, but it is not readable.`);
+      mountProcess.kill();
+      return exitPromise;
+    }
+  }
+
+  return exitPromise;
+}
+
+//
+// Initial checks and setup
+//
+
 // Ensure only a single instance of the app is running
-if (!acquireSingleInstanceLock()) {
+if (!(await acquireSingleInstanceLock())) {
   await notifyAlreadyRunning();
   process.exit(0);
 }
@@ -59,35 +139,21 @@ if (!(await commandExists("rclone"))) {
   process.exit(1);
 }
 
-const mountDir = await getHostMountDir();
-let mountProcess: MountProcess | null = null;
-let notifyMountStart = false;
-let shutdownRequested = false;
-
-async function handleShutdownSignal(): Promise<void> {
-  shutdownRequested = true;
-  if (mountProcess) mountProcess.kill();
-}
-
+// Handle shutdown signals gracefully
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.on(signal, () => void handleShutdownSignal().then(() => process.exit(0)));
+  process.on(signal, () => {
+    shutdownPromise ??= handleShutdownSignal();
+    void shutdownPromise.then(() => process.exit(0));
+  });
 }
 
-async function handleRecoveryAction(action: string): Promise<void> {
-  if (action === "signin") {
-    await signIn();
-  }
-  if (action === "restart") {
-    notifyMountStart = true;
-  }
-}
-
-function hasMountProcessExited(mountProcess: MountProcess): boolean {
-  return mountProcess.exitCode !== null || mountProcess.signalCode !== null;
-}
-
+//
 // Main loop
+//
+
 while (!shutdownRequested) {
+  let mountReady = false;
+
   // Ensure the rclone remote exists
   if (!(await hasRemote())) {
     log(`Missing ${REMOTE_NAME} rclone remote.`);
@@ -101,12 +167,18 @@ while (!shutdownRequested) {
 
   // Start the rclone mount process
   mountProcess = await createMountProcess(mountDir);
+  if (!mountProcess) {
+    const action = await notifyMountFailure();
+    await handleRecoveryAction(action);
+    continue;
+  }
 
   // Wait for the mount to be ready, or for the process to exit
   for (let attempt = 0; attempt < MOUNT_READY_ATTEMPTS; attempt += 1) {
     if (hasMountProcessExited(mountProcess)) break;
 
-    if (await isMounted(mountDir)) {
+    if (await isMountedAndReadable(mountDir)) {
+      mountReady = true;
       log(`Mounted host rclone remote at ${mountDir}.`);
       if (notifyMountStart) {
         await notifySuccess();
@@ -118,17 +190,18 @@ while (!shutdownRequested) {
     await sleep(MOUNT_READY_DELAY_MS);
   }
 
-  // Check if the process exited, if not, wait for it to exit
-  const exitCode = hasMountProcessExited(mountProcess)
-    ? mountProcess.exitCode
-    : await new Promise<number | null>((resolve) => {
-        mountProcess!.once("error", () => resolve(127));
-        mountProcess!.once("close", resolve);
-      });
+  if (!mountReady && !hasMountProcessExited(mountProcess)) {
+    log(`rclone mount did not become ready at ${mountDir}.`);
+    // kill() only sends the signal, wait below until the process actually closes
+    mountProcess.kill();
+  }
+
+  // Ready mounts keep health-checking, failed startups only wait for rclone to close
+  const exitCode = mountReady ? await waitForMountExit(mountProcess) : await waitForMountProcessExit(mountProcess);
   log(`rclone mount exited with code ${exitCode}.`);
 
   // If shutdown was requested, break the loop, otherwise notify the user of the failure
   if (shutdownRequested) break;
-  const action = await notifyMountFailure();
+  const action = mountNeedsSignIn(mountProcess) ? await notifySessionExpired() : await notifyMountFailure();
   await handleRecoveryAction(action);
 }

@@ -11,6 +11,7 @@ export interface CommandResult {
 export interface HostSpawnOptions {
   stdio?: "pipe" | "inherit" | "ignore";
   env?: NodeJS.ProcessEnv;
+  input?: string;
 }
 
 export interface NotificationOptions {
@@ -27,6 +28,11 @@ export interface ICloudSession {
   appleId?: string;
 }
 
+export interface ProcessOutput {
+  stdout: string;
+  stderr: string;
+}
+
 export interface PortalNotification {
   title: dbus.Variant<string>;
   body: dbus.Variant<string>;
@@ -35,4 +41,6 @@ export interface PortalNotification {
   buttons?: dbus.Variant<Record<string, dbus.Variant<string>>[]>;
 }
 
-export type MountProcess = ChildProcess;
+export type MountProcess = ChildProcess & {
+  output: ProcessOutput;
+};

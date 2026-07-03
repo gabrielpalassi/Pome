@@ -6,6 +6,7 @@ export const REMOTE_NAME = "iclouddrive";
 export const REMOTE = `${REMOTE_NAME}:`;
 export const DRIVE_NAME = "iCloud Drive";
 export const MOUNT_FLAGS = ["--vfs-cache-mode", "full", "--dir-cache-time", "30s"];
+export const MOUNT_HEALTH_CHECK_DELAY_MS = 30 * 1000;
 export const MOUNT_READY_ATTEMPTS = 10;
 export const MOUNT_READY_DELAY_MS = 100;
 export const NOTIFICATION_ACTION_TIMEOUT_MS = 5 * 60 * 1000;
