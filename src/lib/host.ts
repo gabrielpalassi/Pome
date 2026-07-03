@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
@@ -10,6 +9,7 @@ import type { CommandResult, HostSpawnOptions } from "./types.js";
 export const inFlatpak = fs.existsSync("/.flatpak-info");
 
 export function hostSpawn(args: string[], options: HostSpawnOptions = {}) {
+  // Route host work through flatpak-spawn when Pome is sandboxed
   const [command, commandArgs] = inFlatpak ? ["flatpak-spawn", ["--host", ...args]] : [args[0], args.slice(1)];
   return spawn(command, commandArgs, {
     stdio: options.stdio ?? "pipe",
@@ -23,18 +23,32 @@ export function hostRunWithOutput(args: string[], options: HostSpawnOptions = {}
     let stdout = "";
     let stderr = "";
 
-    childProcess.stdout?.on("data", (chunk) => {
+    // Keep result construction in one place so errors and exits have the same shape
+    const finish = (code: number | null, error?: string): void => {
+      resolve({
+        ok: code === 0,
+        code,
+        stdout,
+        stderr: error ?? stderr,
+      });
+    };
+
+    // Collect output as text because callers inspect messages and command results
+    function appendStdout(chunk: Buffer): void {
       stdout += chunk.toString();
-    });
-    childProcess.stderr?.on("data", (chunk) => {
+    }
+
+    function appendStderr(chunk: Buffer): void {
       stderr += chunk.toString();
-    });
-    childProcess.on("error", (error) => {
-      resolve({ ok: false, code: 127, stdout, stderr: error.message });
-    });
-    childProcess.on("close", (code) => {
-      resolve({ ok: code === 0, code, stdout, stderr });
-    });
+    }
+
+    childProcess.stdout?.on("data", appendStdout);
+    childProcess.stderr?.on("data", appendStderr);
+    childProcess.on("error", (error) => finish(127, error.message));
+    childProcess.on("close", (code) => finish(code));
+
+    // Pass optional command input through stdin so sensitive values stay out of process listings
+    childProcess.stdin?.end(options.input);
   });
 }
 
@@ -47,9 +61,10 @@ export function hostRun(args: string[], options: HostSpawnOptions = {}): Promise
 }
 
 async function getHostHomeDir(): Promise<string> {
-  const result = await hostRunWithOutput(["sh", "-lc", 'getent passwd "$USER" | cut -d: -f6']);
+  const result = await hostRunWithOutput(["sh", "-lc", 'printf %s "$HOME"']);
   const home = result.stdout.trim();
-  return home || os.homedir();
+  if (!result.ok || !home) throw new Error("Could not resolve host home directory");
+  return home;
 }
 
 export async function getHostUserConfigDir(): Promise<string> {
