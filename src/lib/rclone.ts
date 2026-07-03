@@ -22,8 +22,111 @@ async function getRcloneConfigPath(): Promise<string> {
   return paths.ok && match?.[1] ? match[1].trim() : path.join(await getHostUserConfigDir(), "rclone", "rclone.conf");
 }
 
+async function readHostFile(filePath: string): Promise<string | null> {
+  const result = await hostRunWithOutput(["sh", "-lc", '[ ! -e "$1" ] || cat -- "$1"', "sh", filePath]);
+
+  if (!result.ok) {
+    log(`Could not read host file at ${filePath}: ${result.stderr.trim() || result.stdout.trim()}`);
+    return null;
+  }
+
+  return result.stdout;
+}
+
+async function writeHostFile(filePath: string, content: string): Promise<boolean> {
+  const result = await hostRunWithOutput(
+    [
+      "sh",
+      "-lc",
+      `
+set -eu
+config_path=$1
+config_dir=$(dirname -- "$config_path")
+config_base=$(basename -- "$config_path")
+mkdir -p -- "$config_dir"
+tmp=$(mktemp "$config_dir/.\${config_base}.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+cat > "$tmp"
+chmod 600 "$tmp" 2>/dev/null || true
+if [ -e "$config_path" ]; then
+  chmod --reference="$config_path" "$tmp" 2>/dev/null || true
+fi
+mv -f -- "$tmp" "$config_path"
+trap - EXIT
+`,
+      "sh",
+      filePath,
+    ],
+    { input: content },
+  );
+
+  if (!result.ok) {
+    log(`Could not write host file at ${filePath}: ${result.stderr.trim() || result.stdout.trim()}`);
+  }
+
+  return result.ok;
+}
+
+function updateRemoteSection(content: string, remoteName: string, updates: Record<string, string>): string {
+  const lines = content.replace(/\r\n?/g, "\n").split("\n");
+  if (lines.at(-1) === "") lines.pop();
+
+  const sectionRe = /^\s*\[(.+)]\s*$/;
+  let sectionStart: number | null = null;
+  let sectionEnd = lines.length;
+
+  // Locate the remote section and stop at the next section header.
+  for (const [index, line] of lines.entries()) {
+    const match = sectionRe.exec(line);
+    if (!match) continue;
+
+    if (match[1] === remoteName) {
+      sectionStart = index;
+      continue;
+    }
+
+    if (sectionStart !== null) {
+      sectionEnd = index;
+      break;
+    }
+  }
+
+  // Create the section if rclone has not written it yet.
+  if (sectionStart === null) {
+    if (lines.length > 0 && lines.at(-1)?.trim()) lines.push("");
+    lines.push(`[${remoteName}]`);
+    sectionStart = lines.length - 1;
+    sectionEnd = lines.length;
+  }
+
+  // Replace existing keys in place so surrounding comments and ordering survive.
+  const seen = new Set<string>();
+  for (let index = sectionStart + 1; index < sectionEnd; index += 1) {
+    const key = lines[index].split("=", 1)[0].trim();
+    if (key in updates) {
+      lines[index] = `${key} = ${updates[key]}`;
+      seen.add(key);
+    }
+  }
+
+  // Add missing keys before any trailing blank separator for the section.
+  let insertAt = sectionEnd;
+  while (insertAt > sectionStart + 1 && !lines[insertAt - 1].trim()) {
+    insertAt -= 1;
+  }
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (seen.has(key)) continue;
+
+    lines.splice(insertAt, 0, `${key} = ${value}`);
+    insertAt += 1;
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
 export async function createMinimalRemote(): Promise<boolean> {
-  // Avoid rclone's iCloud auth flow; Pome only needs the section to exist
+  // Avoid rclone's iCloud auth flow, Pome only needs the section to exist
   const configPath = await getRcloneConfigPath();
   const escapedConfigPath = shellQuote(configPath);
   log(`Creating minimal ${REMOTE_NAME} rclone remote in ${configPath}.`);
@@ -117,6 +220,7 @@ export function mountNeedsSignIn(mountProcess: MountProcess): boolean {
     /invalid session token/i,
     /invalid trust token/i,
     /authentication failed/i,
+    /missing icloud trust token/i,
   ];
 
   const output = `${mountProcess.output.stderr}\n${mountProcess.output.stdout}`;
@@ -136,78 +240,18 @@ export async function updateSession({ cookies, token, appleId }: ICloudSession):
 
   // rclone config update continues into iCloud SRP auth and may fail with a 401 if the session is expired, so we write the config directly instead
   const configPath = await getRcloneConfigPath();
-  const update = await hostRunWithOutput(
-    [
-      "python3",
-      "-c",
-      String.raw`
-import json
-import pathlib
-import re
-import sys
+  const configContent = await readHostFile(configPath);
+  if (configContent === null) return false;
 
-config_path = pathlib.Path(sys.argv[1])
-remote_name = sys.argv[2]
-payload = json.load(sys.stdin)
-updates = {
-    "type": remote_name,
-    "cookies": payload["cookies"],
-    "trust_token": payload["token"],
-}
+  const updates: Record<string, string> = {
+    type: REMOTE_NAME,
+    cookies,
+    trust_token: token,
+  };
+  if (appleId) updates.apple_id = appleId;
 
-apple_id = payload.get("appleId", "")
-if apple_id:
-    updates["apple_id"] = apple_id
-
-config_path.parent.mkdir(parents=True, exist_ok=True)
-lines = config_path.read_text(encoding="utf-8").splitlines() if config_path.exists() else []
-section_re = re.compile(r"^\s*\[(.+)]\s*$")
-section_start = None
-section_end = len(lines)
-
-for index, line in enumerate(lines):
-    match = section_re.match(line)
-    if not match:
-        continue
-    if match.group(1) == remote_name:
-        section_start = index
-        continue
-    if section_start is not None:
-        section_end = index
-        break
-
-if section_start is None:
-    if lines and lines[-1].strip():
-        lines.append("")
-    lines.append(f"[{remote_name}]")
-    section_start = len(lines) - 1
-    section_end = len(lines)
-
-seen = set()
-for index in range(section_start + 1, section_end):
-    key = lines[index].split("=", 1)[0].strip()
-    if key in updates:
-        lines[index] = f"{key} = {updates[key]}"
-        seen.add(key)
-
-insert_at = section_end
-for key, value in updates.items():
-    if key not in seen:
-        lines.insert(insert_at, f"{key} = {value}")
-        insert_at += 1
-
-config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-`,
-      configPath,
-      REMOTE_NAME,
-    ],
-    {
-      input: JSON.stringify({ cookies, token, appleId }),
-    },
-  );
-  if (!update.ok) {
-    log(`Failed to update rclone config at ${configPath}: ${update.stderr.trim() || update.stdout.trim()}`);
-  }
+  const updatedConfig = updateRemoteSection(configContent, REMOTE_NAME, updates);
+  if (!(await writeHostFile(configPath, updatedConfig))) return false;
 
   return hasSavedSession();
 }
