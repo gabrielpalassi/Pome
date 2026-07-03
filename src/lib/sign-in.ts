@@ -7,6 +7,20 @@ import {
 import { hasRemote, reconnectRemoteInTerminal, updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
+import type { Page } from "puppeteer";
+
+async function maximizeWindow(page: Page): Promise<void> {
+  try {
+    const client = await page.createCDPSession();
+    const { windowId } = await client.send("Browser.getWindowForTarget");
+    await client.send("Browser.setWindowBounds", {
+      windowId,
+      bounds: { windowState: "maximized" },
+    });
+  } catch (error: unknown) {
+    log(`Could not maximize sign-in window: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 export async function signIn(): Promise<void> {
   const puppeteer = await import("puppeteer");
@@ -19,10 +33,11 @@ export async function signIn(): Promise<void> {
       headless: false,
       defaultViewport: null,
       timeout: 0,
-      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ozone-platform=wayland"],
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--ozone-platform=wayland", "--start-maximized"],
     });
 
     const page = (await browser.pages())[0] ?? (await browser.newPage());
+    await maximizeWindow(page);
 
     // Force iCloud to issue a longer-lived trust token
     page.on("request", async (request) => {
