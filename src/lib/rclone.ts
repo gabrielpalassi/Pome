@@ -255,25 +255,3 @@ export async function updateSession({ cookies, token, appleId }: ICloudSession):
 
   return hasSavedSession();
 }
-
-export async function reconnectRemoteInTerminal(): Promise<boolean> {
-  const title = "Pome iCloud sign in";
-  const command = [
-    `rclone config reconnect ${shellQuote(REMOTE)}`,
-    `printf '\\nPress Enter to close this window...'`,
-    "read -r _",
-  ].join("; ");
-  const titleArg = shellQuote(title);
-  const commandArg = shellQuote(command);
-  const terminalCommand = [
-    `if command -v xdg-terminal-exec >/dev/null 2>&1; then exec xdg-terminal-exec sh -lc ${commandArg}; fi`,
-    `if command -v gnome-terminal >/dev/null 2>&1; then exec gnome-terminal --title=${titleArg} -- sh -lc ${commandArg}; fi`,
-    `if command -v kgx >/dev/null 2>&1; then exec kgx --title ${titleArg} -- sh -lc ${commandArg}; fi`,
-    `if command -v konsole >/dev/null 2>&1; then exec konsole -p tabtitle=${titleArg} -e sh -lc ${commandArg}; fi`,
-    `if command -v xterm >/dev/null 2>&1; then exec xterm -T ${titleArg} -e sh -lc ${commandArg}; fi`,
-    "exit 127",
-  ].join("\n");
-  const result = await hostRun(["sh", "-lc", terminalCommand]);
-  if (!result) log("Could not open a host terminal for rclone reconnect.");
-  return result;
-}

@@ -1,5 +1,5 @@
 import { notifySignInFailure, notifySuccess, notifyUpdateSessionFailure } from "./notifications.js";
-import { reconnectRemoteInTerminal, updateSession } from "./rclone.js";
+import { updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
 import type { Page } from "puppeteer";
@@ -136,7 +136,7 @@ export async function signIn(): Promise<void> {
     );
   } catch (error: unknown) {
     log(`Failed to get iCloud login tokens: ${error instanceof Error ? error.message : String(error)}`);
-    if (!(await reconnectRemoteInTerminal())) await notifySignInFailure();
+    await notifySignInFailure();
     return;
   } finally {
     if (browser) await browser.close();
