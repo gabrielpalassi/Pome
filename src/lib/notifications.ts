@@ -117,7 +117,7 @@ export async function notifySessionExpired(): Promise<string> {
   );
 }
 
-export async function notifyMissingRemote(): Promise<string> {
+export async function notifySignInRequired(): Promise<string> {
   return notify(
     `${DRIVE_NAME} needs sign in`,
     `${APP_NAME} prepared your ${DRIVE_NAME} connection. Sign in to finish setup.`,

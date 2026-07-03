@@ -1,5 +1,5 @@
 import {
-  notifyMissingRemote,
+  notifySignInRequired,
   notifySignInFailure,
   notifySuccess,
   notifyUpdateSessionFailure,
@@ -148,11 +148,6 @@ export async function signIn(): Promise<void> {
   }
 
   // Save the captured session into the rclone remote
-  if (!(await hasRemote())) {
-    await notifyMissingRemote();
-    return;
-  }
-
   if (!(await updateSession(config))) {
     await notifyUpdateSessionFailure();
     return;

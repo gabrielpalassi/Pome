@@ -15,7 +15,7 @@ import { commandExists, getHostMountDir, getHostUserConfigDir, hostRun, inFlatpa
 import {
   notifyAlreadyRunning,
   notifyMissingRclone,
-  notifyMissingRemote,
+  notifySignInRequired,
   notifyMountFailure,
   notifySessionExpired,
   notifySuccess,
@@ -159,7 +159,7 @@ while (!shutdownRequested) {
     log(`Missing ${REMOTE_NAME} rclone remote.`);
 
     const minimalRemote = await createMinimalRemote();
-    const action = minimalRemote ? await notifyMissingRemote() : await notifyMountFailure();
+    const action = minimalRemote ? await notifySignInRequired() : await notifyMountFailure();
 
     await handleRecoveryAction(action);
     continue;
