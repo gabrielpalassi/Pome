@@ -39,7 +39,7 @@ sudo pacman -S rclone
 Then run Pome from your app launcher, or start it manually:
 
 ```sh
-flatpak run io.github.gabrielpalassi.Pome
+flatpak run io.github.gabrielpalassi.pome
 ```
 
 On first launch, Pome prepares an iCloud Drive remote for `rclone` and asks you to sign in. Click `Sign In` in the notification, complete the browser sign-in, and Pome will connect your iCloud Drive folder.
@@ -82,7 +82,7 @@ npm run flatpak-install
 Run the local build:
 
 ```sh
-flatpak run io.github.gabrielpalassi.Pome
+flatpak run io.github.gabrielpalassi.pome
 ```
 
 ## Development
@@ -114,7 +114,7 @@ rclone config show iclouddrive
 
 ## Release Manifest
 
-The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml`, while `io.github.gabrielpalassi.Pome.yml` should point at a pushed release tag.
+The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.pome.local.yml`, while `io.github.gabrielpalassi.pome.yml` should point at a pushed release tag.
 
 When preparing a release:
 
@@ -133,7 +133,7 @@ git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin v0.1.0
 ```
 
-4. Open a follow-up pull request that updates `io.github.gabrielpalassi.Pome.yml` so its `tag` and `commit` match the pushed release.
+4. Open a follow-up pull request that updates `io.github.gabrielpalassi.pome.yml` so its `tag` and `commit` match the pushed release.
 
 ```sh
 git rev-parse HEAD
@@ -152,7 +152,7 @@ If your change touches Flatpak packaging or desktop integration, also build and 
 
 ```sh
 npm run flatpak-install
-flatpak run io.github.gabrielpalassi.Pome
+flatpak run io.github.gabrielpalassi.pome
 ```
 
 Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
