@@ -41,6 +41,23 @@ export interface PortalNotification {
   buttons?: dbus.Variant<Record<string, dbus.Variant<string>>[]>;
 }
 
+export type PortalOptions = Record<string, dbus.Variant>;
+
+export type PortalBackground = dbus.ClientInterface & {
+  RequestBackground(parentWindow: string, options: PortalOptions): Promise<string>;
+};
+
+export type PortalMessageBus = dbus.MessageBus & {
+  name: string | null;
+  _addMatch(match: string): Promise<unknown>;
+  _removeMatch(match: string): Promise<unknown>;
+};
+
+export interface PortalResponseListener {
+  response: Promise<boolean>;
+  cleanup(): void;
+}
+
 export type MountProcess = ChildProcess & {
   output: ProcessOutput;
 };

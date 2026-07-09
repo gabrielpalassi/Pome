@@ -89,6 +89,14 @@ export async function notifyAlreadyRunning(): Promise<void> {
   await notify(`${APP_NAME} is already running`, `${APP_NAME} is already open and keeping ${DRIVE_NAME} connected.`);
 }
 
+export async function notifyAutostartFailure(): Promise<void> {
+  await notify(
+    `${APP_NAME} won't start automatically`,
+    `Open ${APP_NAME} after logging in to reconnect ${DRIVE_NAME}.`,
+    { critical: true },
+  );
+}
+
 export async function notifyMountFailure(): Promise<string> {
   return notify(
     `Can't connect to ${DRIVE_NAME}`,
