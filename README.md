@@ -88,45 +88,44 @@ flatpak run io.github.gabrielpalassi.pome
 
 ## Development
 
-Install Node dependencies:
+Keep changes focused and follow the existing TypeScript style. Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
+
+For regular code changes:
+
+1. Create a branch from the latest `master`.
+2. Install Node dependencies.
+3. Make the code change.
+4. Run the project checks and build.
+5. Open a pull request.
 
 ```sh
 npm ci
-```
-
-Run the project checks to type-check the code, apply ESLint fixes, and format files with Prettier:
-
-```sh
 npm run check
-```
-
-Build the JavaScript output:
-
-```sh
 npm run build
 ```
 
-If npm dependencies change, keep the Flatpak npm sources in sync:
+`npm run check` type-checks the code, applies ESLint fixes, and formats files with Prettier.
+
+If npm dependencies changed, keep the Flatpak npm sources in sync and confirm the Flatpak can build offline:
 
 ```sh
 npm install --package-lock-only --lockfile-version=2
 flatpak-node-generator npm package-lock.json -o generated-sources.json
+npm run flatpak-install
 ```
 
 Keep `package-lock.json` at lockfile version 2 so `flatpak-node-generator` can generate complete offline npm sources.
 
-When running sign-in outside Flatpak, Pome needs Chrome or Chromium available on the host. Set `POME_CHROME_EXECUTABLE_PATH` if it is not installed under a common command name.
-
-Useful `rclone` checks while developing:
+If the change touches Flatpak packaging, autostart, notifications, sign-in, or host commands, build and run the installed Flatpak, then test the affected desktop flow from inside the sandbox:
 
 ```sh
-rclone listremotes
-rclone config show iclouddrive
+npm run flatpak-install
+flatpak run io.github.gabrielpalassi.pome
 ```
 
-## Release Manifest
-
 The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.pome.local.yml`, while `io.github.gabrielpalassi.pome.yml` should point at a pushed release tag.
+
+### Release Manifest
 
 When preparing a release:
 
@@ -150,21 +149,3 @@ git push origin v0.1.0
 ```sh
 git rev-parse HEAD
 ```
-
-## Contributing
-
-Keep changes focused and follow the existing TypeScript style. Before opening a pull request, run:
-
-```sh
-npm run check
-npm run build
-```
-
-If your change touches Flatpak packaging or desktop integration, also build and run the Flatpak locally:
-
-```sh
-npm run flatpak-install
-flatpak run io.github.gabrielpalassi.pome
-```
-
-Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
