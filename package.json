@@ -1,6 +1,6 @@
 {
   "name": "pome",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "iCloud Drive for your Linux desktop.",
   "type": "module",
   "bin": {
@@ -8,15 +8,15 @@
   },
   "scripts": {
     "build": "tsc",
-    "flatpak-install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.yml",
+    "flatpak-install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.pome.local.yml",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --fix",
     "fmt": "prettier --write .",
     "check": "npm run typecheck && npm run lint && npm run fmt"
   },
   "dependencies": {
-    "dbus-next": "^0.10.2",
-    "puppeteer": "^24.31.0"
+    "dbus-next": "0.10.2",
+    "puppeteer-core": "24.42.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

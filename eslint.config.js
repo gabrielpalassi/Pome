@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["build-dir/**", "dist/**", "node_modules/**"],
+    ignores: [".flatpak-builder/**", "build-dir/**", "dist/**", "node_modules/**"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
