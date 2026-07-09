@@ -14,13 +14,6 @@ finish-args:
   - --device=dri
   # Allows flatpak-spawn --host so Pome can manage the user's host rclone mount.
   - --talk-name=org.freedesktop.Flatpak
-  # Keeps Puppeteer's bundled Chromium cache inside the app installation.
-  - --env=PUPPETEER_CACHE_DIR=/app/lib/pome/puppeteer-cache
-build-options:
-  build-args:
-    - --share=network
-  env:
-    PUPPETEER_CACHE_DIR: /app/lib/pome/puppeteer-cache
 modules:
   - name: node
     buildsystem: simple
@@ -40,27 +33,21 @@ modules:
     sources:
       - type: dir
         path: .
+      - type: archive
+        url: https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.57/linux64/chrome-linux64.zip
+        sha256: 62a8d3e2d62c049f9dea6030e41302e50595ba21863eb60ed12d0487a415c1c4
+        dest: chrome
+      - generated-sources.json
     build-commands:
       - mkdir -p /app/lib/pome /app/bin /app/share/applications /app/share/metainfo
       - cp -a package.json package-lock.json tsconfig.json src /app/lib/pome/
-      - cd /app/lib/pome && /app/node/bin/npm ci --omit=optional
-      - |
-        cd /app/lib/pome
-        chrome_path="$(/app/node/bin/node --input-type=module -e 'import puppeteer from "puppeteer"; process.stdout.write(puppeteer.executablePath())')"
-        if ! test -x "$chrome_path"; then
-          chrome_root="$(dirname "$(dirname "$chrome_path")")"
-          chrome_version="$(basename "$chrome_root" | sed 's/^linux-//')"
-          chrome_zip="$(dirname "$chrome_root")/${chrome_version}-chrome-linux64.zip"
-          rm -rf "$chrome_root"
-          mkdir -p "$chrome_root"
-          unzip -q "$chrome_zip" -d "$chrome_root"
-        fi
-        test -x "$chrome_path"
+      - mkdir -p /app/lib/pome/chrome
+      - cp -a chrome/. /app/lib/pome/chrome/
+      - cd /app/lib/pome && /app/node/bin/npm ci --offline --cache /run/build/pome/flatpak-node/npm-cache --omit=optional
+      - test -x /app/lib/pome/chrome/chrome
       - cd /app/lib/pome && /app/node/bin/npm run build
       - cd /app/lib/pome && /app/node/bin/npm prune --omit=dev --omit=optional
       - |
-        find /app/lib/pome/puppeteer-cache -name '*.zip' -delete
-        rm -rf /app/lib/pome/puppeteer-cache/chrome-headless-shell
         rm -rf /app/node/include /app/node/lib /app/node/share
         rm -f /app/node/CHANGELOG.md /app/node/LICENSE /app/node/README.md
         rm -f /app/node/bin/corepack /app/node/bin/npm /app/node/bin/npx

@@ -12,3 +12,11 @@ export const MOUNT_READY_DELAY_MS = 100;
 export const NOTIFICATION_ACTION_TIMEOUT_MS = 5 * 60 * 1000;
 export const AUTOSTART_RESPONSE_TIMEOUT_MS = 30 * 1000;
 export const ICLOUD_URL = "https://www.icloud.com";
+export const CHROME_EXECUTABLE_PATH = "/app/lib/pome/chrome/chrome";
+export const LOCAL_CHROME_EXECUTABLE_CANDIDATES = [
+  "google-chrome-stable",
+  "google-chrome",
+  "chromium",
+  "chromium-browser",
+  "chrome",
+] as const;

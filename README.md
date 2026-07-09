@@ -57,6 +57,7 @@ Local builds use Flatpak Builder. You will need:
 
 - `flatpak`
 - `flatpak-builder`
+- `flatpak-node-generator`
 - `rclone`
 - a working desktop notification portal
 - the Freedesktop runtime and SDK used by the manifest
@@ -104,6 +105,17 @@ Build the JavaScript output:
 ```sh
 npm run build
 ```
+
+If npm dependencies change, keep the Flatpak npm sources in sync:
+
+```sh
+npm install --package-lock-only --lockfile-version=2
+flatpak-node-generator npm package-lock.json -o generated-sources.json
+```
+
+Keep `package-lock.json` at lockfile version 2 so `flatpak-node-generator` can generate complete offline npm sources.
+
+When running sign-in outside Flatpak, Pome needs Chrome or Chromium available on the host. Set `POME_CHROME_EXECUTABLE_PATH` if it is not installed under a common command name.
 
 Useful `rclone` checks while developing:
 

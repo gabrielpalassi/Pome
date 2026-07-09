@@ -2,8 +2,9 @@ import { notifySignInFailure, notifySuccess, notifyUpdateSessionFailure } from "
 import { updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
-import type { Page } from "puppeteer";
-import { ICLOUD_URL } from "./constants.js";
+import type { Page } from "puppeteer-core";
+import { CHROME_EXECUTABLE_PATH, ICLOUD_URL, LOCAL_CHROME_EXECUTABLE_CANDIDATES } from "./constants.js";
+import { hostRunWithOutput, inFlatpak } from "./host.js";
 
 async function maximizeWindow(page: Page): Promise<void> {
   try {
@@ -44,24 +45,46 @@ function getCookieValue(cookie: string): string {
   return separator === -1 ? "" : cookie.slice(separator + 1);
 }
 
+async function resolveChromeExecutablePath(): Promise<string> {
+  const configuredPath = process.env.POME_CHROME_EXECUTABLE_PATH?.trim();
+  if (configuredPath) return configuredPath;
+
+  if (inFlatpak) return CHROME_EXECUTABLE_PATH;
+
+  for (const command of LOCAL_CHROME_EXECUTABLE_CANDIDATES) {
+    const result = await hostRunWithOutput(["sh", "-lc", `command -v ${command}`]);
+    const executablePath = result.stdout.trim();
+    if (result.ok && executablePath) return executablePath;
+  }
+
+  throw new Error("Could not find Chrome or Chromium. Set POME_CHROME_EXECUTABLE_PATH to the browser executable.");
+}
+
 export async function signIn(): Promise<void> {
-  const puppeteer = await import("puppeteer");
+  const puppeteer = await import("puppeteer-core");
   const config: ICloudSession = {};
 
   let browser;
   try {
+    const executablePath = await resolveChromeExecutablePath();
+    const args = [
+      "--ozone-platform=wayland",
+      "--start-maximized",
+      `--app=${ICLOUD_URL}`,
+    ];
+
+    if (inFlatpak) {
+      // Required for the bundled Chromium in Flatpak: without it, launch fails with "No usable sandbox".
+      args.unshift("--no-sandbox");
+    }
+
     // Open iCloud in a visible browser so the user can complete sign-in
     browser = await puppeteer.default.launch({
+      executablePath,
       headless: false,
       defaultViewport: null,
       timeout: 0,
-      args: [
-        // Required for the bundled Chromium in this Flatpak: without it, launch fails with "No usable sandbox".
-        "--no-sandbox",
-        "--ozone-platform=wayland",
-        "--start-maximized",
-        `--app=${ICLOUD_URL}`,
-      ],
+      args,
     });
 
     const page = (await browser.pages())[0] ?? (await browser.newPage());
