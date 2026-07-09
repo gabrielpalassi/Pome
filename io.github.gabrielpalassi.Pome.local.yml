@@ -38,10 +38,8 @@ modules:
   - name: pome
     buildsystem: simple
     sources:
-      - type: git
-        url: https://github.com/gabrielpalassi/Pome.git
-        tag: v0.1.0
-        commit: 72aaab2fa0e854c2cadeedafbc8b8948be65d02c
+      - type: dir
+        path: .
     build-commands:
       - mkdir -p /app/lib/pome /app/bin /app/share/applications /app/share/metainfo
       - cp -a package.json package-lock.json tsconfig.json src /app/lib/pome/

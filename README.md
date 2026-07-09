@@ -112,6 +112,33 @@ rclone listremotes
 rclone config show iclouddrive
 ```
 
+## Release Manifest
+
+The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml`, while `io.github.gabrielpalassi.Pome.yml` should point at a pushed release tag.
+
+When preparing a release:
+
+1. Finish the release changes on a branch and merge the pull request into `master`.
+2. Pull the updated `master` branch locally.
+
+```sh
+git checkout master
+git pull origin master
+```
+
+3. Create and push the release tag from `master`.
+
+```sh
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
+4. Open a follow-up pull request that updates `io.github.gabrielpalassi.Pome.yml` so its `tag` and `commit` match the pushed release.
+
+```sh
+git rev-parse HEAD
+```
+
 ## Contributing
 
 Keep changes focused and follow the existing TypeScript style. Before opening a pull request, run:
