@@ -33,7 +33,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/gabrielpalassi/Pome.git
-        tag: v0.1.0
+        tag: v0.2.0
         commit: 72aaab2fa0e854c2cadeedafbc8b8948be65d02c
       - type: archive
         url: https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.57/linux64/chrome-linux64.zip

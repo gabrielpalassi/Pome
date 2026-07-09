@@ -129,22 +129,29 @@ The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local d
 
 When preparing a release:
 
-1. Finish the release changes on a branch and merge the pull request into `master`.
-2. Pull the updated `master` branch locally.
+1. Finish the release changes on a branch.
+2. Bump the app version in `package.json`, `package-lock.json`, and `data/io.github.gabrielpalassi.pome.metainfo.xml`.
+
+```sh
+npm install --package-lock-only --lockfile-version=2
+```
+
+3. Merge the pull request into `master`.
+4. Pull the updated `master` branch locally.
 
 ```sh
 git checkout master
 git pull origin master
 ```
 
-3. Create and push the release tag from `master`.
+5. Create and push the release tag from `master`.
 
 ```sh
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin v0.1.0
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
 ```
 
-4. Open a follow-up pull request that updates `io.github.gabrielpalassi.pome.yml` so its `tag` and `commit` match the pushed release.
+6. Open a follow-up pull request that updates `io.github.gabrielpalassi.pome.yml` so its `tag` and `commit` match the pushed release.
 
 ```sh
 git rev-parse HEAD
