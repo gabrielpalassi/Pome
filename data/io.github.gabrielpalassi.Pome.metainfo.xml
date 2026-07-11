@@ -19,12 +19,12 @@
   <screenshots>
     <screenshot type="default">
       <caption>iCloud Drive connected and available in Files</caption>
-      <image>https://raw.githubusercontent.com/gabrielpalassi/Pome/v0.2.0/assets/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/gabrielpalassi/Pome/v0.2.1/assets/screenshot.png</image>
     </screenshot>
   </screenshots>
   <launchable type="desktop-id">io.github.gabrielpalassi.Pome.desktop</launchable>
   <content_rating type="oars-1.1" />
   <releases>
-    <release version="0.2.0" date="2026-07-09" />
+    <release version="0.2.1" date="2026-07-11" />
   </releases>
 </component>

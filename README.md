@@ -151,7 +151,7 @@ git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-6. Open a follow-up pull request that updates `io.github.gabrielpalassi.Pome.yml` so its `tag` and `commit` match the pushed release.
+6. Open a follow-up pull request that updates `io.github.gabrielpalassi.Pome.yml` and `io.github.gabrielpalassi.Pome.metainfo.xml` so its `tag`, `commit`, `image`, and `release` match the pushed release.
 
 ```sh
 git rev-parse HEAD
