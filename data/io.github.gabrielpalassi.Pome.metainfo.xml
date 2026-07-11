@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Gabriel Palassi -->
 <component type="desktop-application">
-  <id>io.github.gabrielpalassi.pome</id>
+  <id>io.github.gabrielpalassi.Pome</id>
   <name>Pome</name>
   <summary>iCloud Drive for your Linux desktop</summary>
   <developer id="io.github.gabrielpalassi">
@@ -9,6 +10,7 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>AGPL-3.0-only</project_license>
   <url type="homepage">https://github.com/gabrielpalassi/Pome</url>
+  <url type="vcs-browser">https://github.com/gabrielpalassi/Pome</url>
   <description>
     <p>Pome brings iCloud Drive to Linux desktops as a quiet folder that stays available in the background.</p>
     <p>It mounts iCloud Drive through rclone and keeps your files available in ~/iCloud Drive. After the first launch, Pome starts automatically when you log in so it can reconnect your drive without getting in the way.</p>
@@ -17,10 +19,10 @@
   <screenshots>
     <screenshot type="default">
       <caption>iCloud Drive connected and available in Files</caption>
-      <image>https://raw.githubusercontent.com/gabrielpalassi/Pome/master/assets/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/gabrielpalassi/Pome/v0.2.0/assets/screenshot.png</image>
     </screenshot>
   </screenshots>
-  <launchable type="desktop-id">io.github.gabrielpalassi.pome.desktop</launchable>
+  <launchable type="desktop-id">io.github.gabrielpalassi.Pome.desktop</launchable>
   <content_rating type="oars-1.1" />
   <releases>
     <release version="0.2.0" date="2026-07-09" />
