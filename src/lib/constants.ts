@@ -1,4 +1,4 @@
-export const APP_ID = "io.github.gabrielpalassi.pome";
+export const APP_ID = "io.github.gabrielpalassi.Pome";
 export const APP_NAME = "Pome";
 export const APP_DESCRIPTION = "iCloud Drive for your Linux desktop.";
 export const NOTIFICATION_ICON = `${APP_ID}.notification`;

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "flatpak-install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.pome.local.yml",
+    "flatpak-install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.local.yml",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --fix",
     "fmt": "prettier --write .",

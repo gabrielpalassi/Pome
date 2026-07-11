@@ -39,7 +39,7 @@ sudo pacman -S rclone
 Then run Pome from your app launcher, or start it manually:
 
 ```sh
-flatpak run io.github.gabrielpalassi.pome
+flatpak run io.github.gabrielpalassi.Pome
 ```
 
 On first launch, Pome prepares an iCloud Drive remote for `rclone` and asks you to sign in. Click `Sign In` in the notification, complete the browser sign-in, and Pome will connect your iCloud Drive folder.
@@ -83,7 +83,7 @@ npm run flatpak-install
 Run the local build:
 
 ```sh
-flatpak run io.github.gabrielpalassi.pome
+flatpak run io.github.gabrielpalassi.Pome
 ```
 
 ## Development
@@ -120,17 +120,17 @@ If the change touches Flatpak packaging, autostart, notifications, sign-in, or h
 
 ```sh
 npm run flatpak-install
-flatpak run io.github.gabrielpalassi.pome
+flatpak run io.github.gabrielpalassi.Pome
 ```
 
-The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.pome.local.yml`, while `io.github.gabrielpalassi.pome.yml` should point at a pushed release tag.
+The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml`, while `io.github.gabrielpalassi.Pome.yml` should point at a pushed release tag.
 
 ### Release Manifest
 
 When preparing a release:
 
 1. Finish the release changes on a branch.
-2. Bump the app version in `package.json`, `package-lock.json`, and `data/io.github.gabrielpalassi.pome.metainfo.xml`.
+2. Bump the app version in `package.json`, `package-lock.json`, and `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
 
 ```sh
 npm install --package-lock-only --lockfile-version=2
@@ -151,7 +151,7 @@ git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-6. Open a follow-up pull request that updates `io.github.gabrielpalassi.pome.yml` so its `tag` and `commit` match the pushed release.
+6. Open a follow-up pull request that updates `io.github.gabrielpalassi.Pome.yml` so its `tag` and `commit` match the pushed release.
 
 ```sh
 git rev-parse HEAD

@@ -67,14 +67,10 @@ export async function signIn(): Promise<void> {
   let browser;
   try {
     const executablePath = await resolveChromeExecutablePath();
-    const args = [
-      "--ozone-platform=wayland",
-      "--start-maximized",
-      `--app=${ICLOUD_URL}`,
-    ];
+    const args = ["--ozone-platform=wayland", "--start-maximized", `--app=${ICLOUD_URL}`];
 
     if (inFlatpak) {
-      // Required for the bundled Chromium in Flatpak: without it, launch fails with "No usable sandbox".
+      // Required for the bundled Chromium in Flatpak: without it, launch fails with "No usable sandbox"
       args.unshift("--no-sandbox");
     }
 

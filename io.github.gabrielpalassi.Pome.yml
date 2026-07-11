@@ -1,18 +1,18 @@
-app-id: io.github.gabrielpalassi.pome
+app-id: io.github.gabrielpalassi.Pome
 runtime: org.freedesktop.Platform
 runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
 command: pome
 finish-args:
-  # Required for iCloud sign-in and rclone network access.
+  # Required for the sandboxed iCloud sign-in window
   - --share=network
-  # Required by Chromium when rendering the visible Wayland sign-in window.
+  # Required by Chromium when rendering the visible Wayland sign-in window
   - --share=ipc
-  # Shows the iCloud sign-in window from the sandboxed app.
+  # Shows the iCloud sign-in window from the sandboxed app
   - --socket=wayland
-  # Enables Chromium rendering acceleration for the sign-in window.
+  # Enables Chromium rendering acceleration for the sign-in window
   - --device=dri
-  # Allows flatpak-spawn --host so Pome can manage the user's host rclone mount.
+  # Allows flatpak-spawn --host so Pome can manage the user's host rclone mount
   - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: node
@@ -31,8 +31,10 @@ modules:
   - name: pome
     buildsystem: simple
     sources:
-      - type: dir
-        path: .
+      - type: git
+        url: https://github.com/gabrielpalassi/Pome.git
+        tag: v0.2.0
+        commit: 569733d2c970f8174c91a91cb527c80b412528b5
       - type: archive
         url: https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.57/linux64/chrome-linux64.zip
         sha256: 62a8d3e2d62c049f9dea6030e41302e50595ba21863eb60ed12d0487a415c1c4
@@ -54,8 +56,8 @@ modules:
         rm -f /app/bin/npm /app/bin/npx
       - chmod +x /app/lib/pome/dist/pome.js
       - ln -s /app/lib/pome/dist/pome.js /app/bin/pome
-      - install -Dm644 data/io.github.gabrielpalassi.pome.desktop /app/share/applications/io.github.gabrielpalassi.pome.desktop
-      - install -Dm644 data/io.github.gabrielpalassi.pome.metainfo.xml /app/share/metainfo/io.github.gabrielpalassi.pome.metainfo.xml
-      - install -Dm644 data/icons/hicolor/scalable/apps/io.github.gabrielpalassi.pome.svg /app/share/icons/hicolor/scalable/apps/io.github.gabrielpalassi.pome.svg
-      - install -Dm644 data/icons/hicolor/512x512/apps/io.github.gabrielpalassi.pome.notification.png /app/share/icons/hicolor/512x512/apps/io.github.gabrielpalassi.pome.notification.png
-      - install -Dm644 data/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.pome-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.pome-symbolic.svg
+      - install -Dm644 data/io.github.gabrielpalassi.Pome.desktop /app/share/applications/io.github.gabrielpalassi.Pome.desktop
+      - install -Dm644 data/io.github.gabrielpalassi.Pome.metainfo.xml /app/share/metainfo/io.github.gabrielpalassi.Pome.metainfo.xml
+      - install -Dm644 data/icons/hicolor/scalable/apps/io.github.gabrielpalassi.Pome.svg /app/share/icons/hicolor/scalable/apps/io.github.gabrielpalassi.Pome.svg
+      - install -Dm644 data/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.notification.png /app/share/icons/hicolor/512x512/apps/io.github.gabrielpalassi.Pome.notification.png
+      - install -Dm644 data/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.Pome-symbolic.svg /app/share/icons/hicolor/symbolic/apps/io.github.gabrielpalassi.Pome-symbolic.svg
