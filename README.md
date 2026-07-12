@@ -1,8 +1,6 @@
-# 🍎 Pome
+<h1><img src="data/icons/hicolor/scalable/apps/io.github.gabrielpalassi.Pome.svg" alt="" width="48" height="48" align="absmiddle"> Pome</h1>
 
 Pome gives Linux desktops a quiet iCloud Drive folder.
-
-> ⚠️ Pome is currently beta software. It is ready for testing, but you may still run into rough edges, missing features, or changes between releases.
 
 <img src="assets/screenshot.png" alt="Pome screenshot" width="640">
 
