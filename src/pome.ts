@@ -4,7 +4,7 @@ import process from "node:process";
 import {
   MOUNT_HEALTH_CHECK_DELAY_MS,
   MOUNT_READY_ATTEMPTS,
-  MOUNT_READY_DELAY_MS,
+  MOUNT_READY_WAIT_TIME_MS,
   REMOTE_NAME,
 } from "./lib/constants.js";
 import { commandExists, getHostMountDir, inFlatpak } from "./lib/host.js";
@@ -67,11 +67,10 @@ async function handleShutdownSignal(): Promise<void> {
 }
 
 async function handleRecoveryAction(action: string): Promise<void> {
-  if (action === "signin") {
-    await signIn();
-  }
+  if (action === "signin") await signIn();
   if (action === "restart") {
     notifyMountStart = true;
+    await sleep(MOUNT_READY_WAIT_TIME_MS);
   }
 }
 
@@ -108,9 +107,7 @@ if (!(await acquireSingleInstanceLock())) {
 }
 
 // Ensure the app is set to autostart if running in a Flatpak
-if (inFlatpak) {
-  void ensureFlatpakAutostart();
-}
+if (inFlatpak) ensureFlatpakAutostart();
 
 // Check for rclone
 if (!(await commandExists("rclone"))) {
@@ -135,10 +132,8 @@ while (!shutdownRequested) {
   // Ensure the rclone remote exists
   if (!(await hasRemote())) {
     log(`Missing ${REMOTE_NAME} rclone remote.`);
-
     const minimalRemote = await createMinimalRemote();
     const action = minimalRemote ? await notifySignInRequired() : await notifyMountFailure();
-
     await handleRecoveryAction(action);
     continue;
   }
@@ -166,7 +161,7 @@ while (!shutdownRequested) {
       break;
     }
 
-    await sleep(MOUNT_READY_DELAY_MS);
+    await sleep(MOUNT_READY_WAIT_TIME_MS);
   }
 
   if (!mountReady && !hasMountProcessExited(mountProcess)) {
