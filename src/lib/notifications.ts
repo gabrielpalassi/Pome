@@ -117,10 +117,7 @@ export async function notifySessionExpired(): Promise<string> {
     `Your ${DRIVE_NAME} session is no longer valid. Sign in again to reconnect.`,
     {
       critical: true,
-      actions: [
-        { id: "signin", label: "Sign In" },
-        { id: "restart", label: "Try Again" },
-      ],
+      actions: [{ id: "signin", label: "Sign In" }],
     },
   );
 }
