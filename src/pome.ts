@@ -6,6 +6,7 @@ import {
   MOUNT_READY_ATTEMPTS,
   MOUNT_READY_WAIT_TIME_MS,
   REMOTE_NAME,
+  TRY_AGAIN_WAIT_TIME_MS,
 } from "./lib/constants.js";
 import { commandExists, getHostMountDir, inFlatpak } from "./lib/host.js";
 import {
@@ -70,7 +71,7 @@ async function handleRecoveryAction(action: string): Promise<void> {
   if (action === "signin") await signIn();
   if (action === "restart") {
     notifyMountStart = true;
-    await sleep(MOUNT_READY_WAIT_TIME_MS);
+    await sleep(TRY_AGAIN_WAIT_TIME_MS);
   }
 }
 
