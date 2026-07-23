@@ -15,7 +15,9 @@ import {
   notifySignInRequired,
   notifyMountFailure,
   notifySessionExpired,
+  notifySignInFailure,
   notifySuccess,
+  notifyUpdateSessionFailure,
 } from "./lib/notifications.js";
 import { acquireSingleInstanceLock } from "./lib/lock.js";
 import {
@@ -68,7 +70,14 @@ async function handleShutdownSignal(): Promise<void> {
 }
 
 async function handleRecoveryAction(action: string): Promise<void> {
-  if (action === "signin") await signIn();
+  if (action === "signin") {
+    const result = await signIn();
+
+    if (result === "sign-in-failed") await notifySignInFailure();
+    if (result === "session-update-failed") await notifyUpdateSessionFailure();
+    if (result === "success") notifyMountStart = true;
+  }
+
   if (action === "restart") {
     notifyMountStart = true;
     await sleep(TRY_AGAIN_WAIT_TIME_MS);

@@ -1,4 +1,3 @@
-import { notifySignInFailure, notifySuccess, notifyUpdateSessionFailure } from "./notifications.js";
 import { updateSession } from "./rclone.js";
 import { log } from "./utils.js";
 import type { ICloudSession } from "./types.js";
@@ -60,7 +59,9 @@ async function resolveChromeExecutablePath(): Promise<string> {
   throw new Error("Could not find Chrome or Chromium. Set POME_CHROME_EXECUTABLE_PATH to the browser executable.");
 }
 
-export async function signIn(): Promise<void> {
+export type SignInResult = "success" | "sign-in-failed" | "session-update-failed";
+
+export async function signIn(): Promise<SignInResult> {
   const puppeteer = await import("puppeteer-core");
   const config: ICloudSession = {};
 
@@ -155,17 +156,15 @@ export async function signIn(): Promise<void> {
     );
   } catch (error: unknown) {
     log(`Failed to get iCloud login tokens: ${error instanceof Error ? error.message : String(error)}`);
-    await notifySignInFailure();
-    return;
+    return "sign-in-failed";
   } finally {
     if (browser) await browser.close();
   }
 
   // Save the captured session into the rclone remote
   if (!(await updateSession(config))) {
-    await notifyUpdateSessionFailure();
-    return;
+    return "session-update-failed";
   }
 
-  await notifySuccess();
+  return "success";
 }
