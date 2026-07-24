@@ -2,9 +2,9 @@
 
 import process from "node:process";
 import {
-  MOUNT_HEALTH_CHECK_DELAY_MS,
-  MOUNT_READY_ATTEMPTS,
-  MOUNT_READY_WAIT_TIME_MS,
+  MOUNT_HEALTH_CHECK_INTERVAL_MS,
+  MOUNT_READY_POLL_INTERVAL_MS,
+  MOUNT_READY_TIMEOUT_MS,
   REMOTE_NAME,
   TRY_AGAIN_WAIT_TIME_MS,
 } from "./lib/constants.js";
@@ -23,13 +23,13 @@ import { acquireSingleInstanceLock } from "./lib/lock.js";
 import {
   createMinimalRemote,
   hasRemote,
-  createMountProcess,
+  createRcloneProcess,
   isMountedAndReadable,
-  mountNeedsSignIn,
+  needsSignIn,
 } from "./lib/rclone.js";
 import { ensureFlatpakAutostart } from "./lib/autostart.js";
 import { signIn } from "./lib/sign-in.js";
-import type { MountProcess } from "./lib/types.js";
+import type { RcloneProcess } from "./lib/types.js";
 import { log, sleep } from "./lib/utils.js";
 
 //
@@ -37,7 +37,7 @@ import { log, sleep } from "./lib/utils.js";
 //
 
 const mountDir = await getHostMountDir();
-let mountProcess: MountProcess | null = null;
+let rcloneProcess: RcloneProcess | null = null;
 let notifyMountStart = false;
 let shutdownRequested = false;
 let shutdownPromise: Promise<void> | null = null;
@@ -46,27 +46,27 @@ let shutdownPromise: Promise<void> | null = null;
 // Helper functions
 //
 
-function hasMountProcessExited(mountProcess: MountProcess): boolean {
-  return mountProcess.exitCode !== null || mountProcess.signalCode !== null;
+function hasRcloneProcessExited(rcloneProcess: RcloneProcess): boolean {
+  return rcloneProcess.exitCode !== null || rcloneProcess.signalCode !== null;
 }
 
-function waitForMountProcessExit(mountProcess: MountProcess): Promise<number | null> {
-  if (hasMountProcessExited(mountProcess)) return Promise.resolve(mountProcess.exitCode);
+function waitForRcloneProcessExit(rcloneProcess: RcloneProcess): Promise<number | null> {
+  if (hasRcloneProcessExited(rcloneProcess)) return Promise.resolve(rcloneProcess.exitCode);
 
   return new Promise<number | null>((resolve) => {
-    mountProcess.once("error", () => resolve(127));
-    mountProcess.once("close", resolve);
+    rcloneProcess.once("error", () => resolve(127));
+    rcloneProcess.once("close", resolve);
   });
 }
 
 async function handleShutdownSignal(): Promise<void> {
   shutdownRequested = true;
 
-  if (!mountProcess || hasMountProcessExited(mountProcess)) return;
+  if (!rcloneProcess || hasRcloneProcessExited(rcloneProcess)) return;
 
   // kill() only sends the signal, wait until rclone actually closes before exiting Pome
-  mountProcess.kill();
-  await waitForMountProcessExit(mountProcess);
+  rcloneProcess.kill();
+  await waitForRcloneProcessExit(rcloneProcess);
 }
 
 async function handleRecoveryAction(action: string): Promise<void> {
@@ -84,21 +84,24 @@ async function handleRecoveryAction(action: string): Promise<void> {
   }
 }
 
-async function waitForMountExit(mountProcess: MountProcess): Promise<number | null> {
+async function waitForMountFailureOrRcloneProcessExit(rcloneProcess: RcloneProcess): Promise<number | null> {
   // Always listen for the rclone process to end
-  const exitPromise = waitForMountProcessExit(mountProcess);
+  const exitPromise = waitForRcloneProcessExit(rcloneProcess);
 
   // Keep checking for process exit, failed health check, or shutdown signal
   while (!shutdownRequested) {
     // Wait for either rclone to exit or the next health check.
-    const result = await Promise.race([exitPromise, sleep(MOUNT_HEALTH_CHECK_DELAY_MS).then(() => "check" as const)]);
+    const result = await Promise.race([
+      exitPromise,
+      sleep(MOUNT_HEALTH_CHECK_INTERVAL_MS).then(() => "check" as const),
+    ]);
 
     if (result !== "check") return result;
 
     // Health check: if the mount is no longer readable, kill the process and return the exit code
     if (!(await isMountedAndReadable(mountDir))) {
       log(`Mounted host rclone remote at ${mountDir}, but it is not readable.`);
-      mountProcess.kill();
+      rcloneProcess.kill();
       return exitPromise;
     }
   }
@@ -129,8 +132,9 @@ if (!(await commandExists("rclone"))) {
 // Handle shutdown signals gracefully
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
+    // Start shutdown only once, even if multiple signals arrive before it finishes
     shutdownPromise ??= handleShutdownSignal();
-    void shutdownPromise.then(() => process.exit(0));
+    shutdownPromise.then(() => process.exit(0));
   });
 }
 
@@ -141,7 +145,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 while (!shutdownRequested) {
   // Ensure the rclone remote exists
   if (!(await hasRemote())) {
-    log(`Missing ${REMOTE_NAME} rclone remote.`);
+    log(`Missing ${REMOTE_NAME} rclone remote. Attempting to create a minimal remote for sign-in.`);
     const minimalRemote = await createMinimalRemote();
     const action = minimalRemote ? await notifySignInRequired() : await notifyMountFailure();
     await handleRecoveryAction(action);
@@ -149,18 +153,17 @@ while (!shutdownRequested) {
   }
 
   // Start the rclone mount process
-  mountProcess = await createMountProcess(mountDir);
-  if (!mountProcess) {
+  rcloneProcess = await createRcloneProcess(mountDir);
+  if (!rcloneProcess) {
     const action = await notifyMountFailure();
     await handleRecoveryAction(action);
     continue;
   }
 
-  // Wait for the mount to be ready, or for the process to exit
+  // Poll until the mount is ready, rclone exits, or the readiness deadline expires
   let mountReady = false;
-  for (let attempt = 0; attempt < MOUNT_READY_ATTEMPTS; attempt += 1) {
-    if (hasMountProcessExited(mountProcess)) break;
-
+  const mountReadyDeadline = Date.now() + MOUNT_READY_TIMEOUT_MS;
+  while (!hasRcloneProcessExited(rcloneProcess) && Date.now() < mountReadyDeadline) {
     if (await isMountedAndReadable(mountDir)) {
       mountReady = true;
       log(`Mounted host rclone remote at ${mountDir}.`);
@@ -171,21 +174,26 @@ while (!shutdownRequested) {
       break;
     }
 
-    await sleep(MOUNT_READY_WAIT_TIME_MS);
+    const remainingWaitTime = mountReadyDeadline - Date.now();
+    if (remainingWaitTime <= 0) break;
+
+    await sleep(Math.min(MOUNT_READY_POLL_INTERVAL_MS, remainingWaitTime));
   }
 
-  if (!mountReady && !hasMountProcessExited(mountProcess)) {
+  if (!mountReady && !hasRcloneProcessExited(rcloneProcess)) {
     log(`rclone mount did not become ready at ${mountDir}.`);
     // kill() only sends the signal, wait below until the process actually closes
-    mountProcess.kill();
+    rcloneProcess.kill();
   }
 
   // Ready mounts keep health-checking, failed startups only wait for rclone to close
-  const exitCode = mountReady ? await waitForMountExit(mountProcess) : await waitForMountProcessExit(mountProcess);
+  const exitCode = mountReady
+    ? await waitForMountFailureOrRcloneProcessExit(rcloneProcess)
+    : await waitForRcloneProcessExit(rcloneProcess);
   log(`rclone mount exited with code ${exitCode}.`);
 
   // If shutdown was requested, break the loop, otherwise notify the user of the failure
   if (shutdownRequested) break;
-  const action = mountNeedsSignIn(mountProcess) ? await notifySessionExpired() : await notifyMountFailure();
+  const action = needsSignIn(rcloneProcess) ? await notifySessionExpired() : await notifyMountFailure();
   await handleRecoveryAction(action);
 }
