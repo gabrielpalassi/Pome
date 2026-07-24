@@ -1,6 +1,6 @@
 {
   "name": "pome",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "iCloud Drive for your Linux desktop.",
   "type": "module",
   "bin": {
@@ -20,6 +20,11 @@
   "dependencies": {
     "dbus-next": "0.10.2",
     "puppeteer-core": "24.42.0"
+  },
+  "overrides": {
+    "dbus-next": {
+      "xml2js": "0.6.2"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
