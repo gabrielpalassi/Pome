@@ -123,33 +123,37 @@ flatpak run io.github.gabrielpalassi.Pome
 
 The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml`, while `io.github.gabrielpalassi.Pome.yml` should point at a pushed release tag.
 
-### Release Manifest
+### Releases
 
 When preparing a release:
 
 1. Finish the release changes on a branch.
-2. Bump the app version in `package.json`, `package-lock.json`, and `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
+2. Bump the app version in `package.json` and `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
+3. Run:
 
 ```sh
 npm install --package-lock-only --lockfile-version=2
 ```
 
-3. Merge the pull request into `master`.
-4. Pull the updated `master` branch locally.
+4. Merge the pull request into `master`.
+5. Pull the updated `master` branch locally.
 
 ```sh
 git checkout master
 git pull origin master
 ```
 
-5. Create and push the release tag from `master`.
+6. Create and push the release tag from `master`.
 
 ```sh
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
-6. Open a follow-up pull request that synchronizes the release metadata in `package.json`, `package-lock.json`, `io.github.gabrielpalassi.Pome.yml`, and `data/io.github.gabrielpalassi.Pome.metainfo.xml`. Update the applicable `version`, `tag`, `commit`, `image`, and `release` values to match the release that was just published.
+7. Open a follow-up pull request that updates:
+
+   - `io.github.gabrielpalassi.Pome.yml`: set `tag` and `commit` to the published release.
+   - `data/io.github.gabrielpalassi.Pome.metainfo.xml`: update the screenshot `image` URL to the published tag.
 
 ```sh
 git rev-parse HEAD

@@ -3,7 +3,7 @@ import process from "node:process";
 import { MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
 import { commandExists, getHostUserConfigDir, hostRunWithOutput, hostRun, hostSpawn } from "./host.js";
 import { log, shellQuote } from "./utils.js";
-import type { ICloudSession, MountProcess } from "./types.js";
+import type { ICloudSession, RcloneProcess } from "./types.js";
 
 export async function hasRemote(): Promise<boolean> {
   const result = await hostRunWithOutput(["rclone", "listremotes"]);
@@ -184,7 +184,7 @@ async function unmountMountDir(mountDir: string): Promise<boolean> {
   return false;
 }
 
-export async function createMountProcess(mountDir: string): Promise<MountProcess | null> {
+export async function createRcloneProcess(mountDir: string): Promise<RcloneProcess | null> {
   // Unmount any existing mount at the target directory before starting a new mount
   if (!(await unmountMountDir(mountDir))) return null;
 
@@ -195,25 +195,25 @@ export async function createMountProcess(mountDir: string): Promise<MountProcess
   }
 
   const args = ["rclone", "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
-  const mountProcess = hostSpawn(args) as MountProcess;
-  mountProcess.output = { stdout: "", stderr: "" };
+  const rcloneProcess = hostSpawn(args) as RcloneProcess;
+  rcloneProcess.output = { stdout: "", stderr: "" };
 
   // Keep logs visible while retaining enough output to classify auth failures
-  mountProcess.stdout?.on("data", (chunk) => {
+  rcloneProcess.stdout?.on("data", (chunk) => {
     const text = chunk.toString();
-    mountProcess.output.stdout += text;
+    rcloneProcess.output.stdout += text;
     process.stdout.write(text);
   });
-  mountProcess.stderr?.on("data", (chunk) => {
+  rcloneProcess.stderr?.on("data", (chunk) => {
     const text = chunk.toString();
-    mountProcess.output.stderr += text;
+    rcloneProcess.output.stderr += text;
     process.stderr.write(text);
   });
 
-  return mountProcess;
+  return rcloneProcess;
 }
 
-export function mountNeedsSignIn(mountProcess: MountProcess): boolean {
+export function needsSignIn(rcloneProcess: RcloneProcess): boolean {
   // iCloud session expiry surfaces as backend text, not a stable exit code
   const AUTH_FAILURE_PATTERNS = [
     /invalid global session/i,
@@ -223,7 +223,7 @@ export function mountNeedsSignIn(mountProcess: MountProcess): boolean {
     /missing icloud trust token/i,
   ];
 
-  const output = `${mountProcess.output.stderr}\n${mountProcess.output.stdout}`;
+  const output = `${rcloneProcess.output.stderr}\n${rcloneProcess.output.stdout}`;
   return AUTH_FAILURE_PATTERNS.some((pattern) => pattern.test(output));
 }
 

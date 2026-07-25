@@ -58,6 +58,6 @@ export interface PortalResponseListener {
   cleanup(): void;
 }
 
-export type MountProcess = ChildProcess & {
+export type RcloneProcess = ChildProcess & {
   output: ProcessOutput;
 };
