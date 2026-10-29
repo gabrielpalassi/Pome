@@ -13,7 +13,8 @@
   "scripts": {
     "bundle": "bun build ./src/pome.ts --target=bun --packages=external --minify-syntax --minify-whitespace --sourcemap=linked --outdir=dist",
     "flatpak:sources": "bun scripts/flatpak-sources.ts",
-    "flatpak:install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.local.yml && rm -rf build-dir .flatpak-builder",
+    "flatpak:install": "flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.local.yml",
+    "flatpak:clean": "rm -rf build-dir .flatpak-builder",
     "typecheck": "bun check",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

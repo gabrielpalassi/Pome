@@ -42,9 +42,7 @@ flatpak run io.github.gabrielpalassi.Pome
 
 ## Development
 
-Create a branch from the latest `master`, keep changes focused, and open a pull request when ready. Follow the existing TypeScript style and prefer portals for desktop integration.
-
-Install dependencies and run the checks and tests:
+Branch from the latest `master`, follow the existing TypeScript style, and open a focused pull request. Prefer portals for desktop integration.
 
 ```sh
 bun install --frozen-lockfile
@@ -52,31 +50,49 @@ bun run verify
 bun run test
 ```
 
-`bun run verify` runs Bun's type checker and formatter plus ESLint without changing files. `bun run test` runs directly against the TypeScript sources; no compilation step is needed. Use `bun run verify:fix` to apply lint and formatting fixes. Run Pome directly with `bun src/pome.ts` when needed. Native runs require rclone and Chrome or Chromium.
+| Command | Purpose |
+| --- | --- |
+| `bun install --frozen-lockfile` | Install the locked dependencies |
+| `bun run verify` | Check types, lint, and formatting without changing files |
+| `bun run verify:fix` | Check types and apply lint and formatting fixes |
+| `bun run typecheck` | Check TypeScript types |
+| `bun run lint` | Check ESLint rules |
+| `bun run lint:fix` | Apply ESLint fixes |
+| `bun run format` | Check formatting |
+| `bun run format:fix` | Apply formatting fixes |
+| `bun run test` | Run tests directly against TypeScript |
+| `bun run bundle` | Build the production bundle in `dist/` |
+| `bun run flatpak:sources` | Regenerate offline dependency sources from `bun.lock` |
+| `bun run flatpak:install` | Build and install the local Flatpak, preserving the build cache |
+| `bun run flatpak:clean` | Remove the Flatpak build directory and cache |
+| `bun src/pome.ts` | Run locally; requires rclone and Chrome or Chromium |
 
-`bun check` and `bun fmt` invoke Bun's native tools; `bun run test` invokes Bun's native test runner. Use `bun run typecheck`, `bun run lint`, or `bun run format` for individual checks. The `lint:fix` and `format:fix` scripts apply fixes; `verify` and `verify:fix` combine the corresponding checks.
+- **Configuration:** `bunfig.toml` holds Bun and formatting settings; `tsconfig.json` configures types and editor support.
+- **Type checking:** `bun check` uses Bun's built-in checker. The `typescript` dependency supports ESLint's parser.
+- **Production bundle:** Bun-targeted JavaScript with syntax and whitespace minification, a source map, and external dependencies in `node_modules`.
 
-`bun run bundle` builds `dist/pome.js` for production, targeting Bun with syntax and whitespace minification and an external source map. Dependencies stay external in `node_modules`. Development and tests continue to run TypeScript directly.
-
-Bun-specific settings, formatting options, and ignore patterns live in `bunfig.toml`. `tsconfig.json` configures type checking and editor support. The `typescript` development dependency supports ESLint's parser; `bun check` uses Bun's built-in checker. The Bun version is pinned in `package.json`, CI reads that pin, and the Flatpak manifest pins the matching runtime archive and checksum.
-
-Changes to packaging, autostart, notifications, sign-in, or host commands also need testing in the installed Flatpak. Build and launch it using the commands above, then exercise the affected desktop flow.
+Test packaging, autostart, notifications, sign-in, and host-command changes in the installed Flatpak too.
 
 ### Host integration
 
-Pome keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Keep host-side commands limited to work that needs to happen outside the sandbox.
+Host commands belong in `src/lib/host.ts`, `src/lib/rclone.ts`, or portal helpers. Keep them limited to work that requires leaving the sandbox.
 
-The Flatpak stages its bundled rclone in `~/.var/app/io.github.gabrielpalassi.Pome/data/libexec/`, using a content hash in the filename. Pome verifies and reuses that copy on subsequent launches, and stages a new copy when the bundled binary changes. It runs outside the sandbox to keep `~/iCloud Drive` available to other applications, while continuing to use the host's existing rclone configuration. Native development runs still require rclone on `PATH`.
-
-The rclone version, archive checksum, and license source are pinned in the local Flatpak manifest. Update them together when upgrading rclone.
+- rclone runs on the host so other applications can access `~/iCloud Drive`. It uses the host's existing rclone configuration.
+- The Flatpak stages a verified, reusable copy in `~/.var/app/io.github.gabrielpalassi.Pome/data/libexec/`. Filenames include a content hash; bundled updates get a new copy.
+- Native runs require rclone on `PATH`. When upgrading the bundled version, update its version, archive checksum, and license source together in the manifest.
 
 ### Flatpak packaging
 
-`bun run flatpak:install` uses `io.github.gabrielpalassi.Pome.local.yml` to build from the working tree. It installs production dependencies offline and runs `bun run bundle` inside the build sandbox. The app ships Bun, the optimized JavaScript bundle and source map, and production dependencies; the TypeScript source tree is removed after bundling. Optional dependencies and lifecycle scripts are disabled. After a successful installation, the script removes the local build directory and Flatpak builder cache.
+`bun run flatpak:install` builds the working tree using `io.github.gabrielpalassi.Pome.local.yml`:
 
-This repository keeps the local build manifest and its generated dependency sources. Pome has not yet been accepted on Flathub; release packaging will be maintained in the Flathub repository after acceptance. AppStream metadata, desktop files, and icons stay here and are installed from the tagged source release.
+1. Install production dependencies offline, with optional dependencies and lifecycle scripts disabled.
+2. Build the optimized bundle and remove the TypeScript source tree.
+3. Package Bun, the bundle and source map, and production dependencies.
+4. Install the app, keeping build output and cached downloads for inspection and faster rebuilds.
 
-After changing dependencies, update the Bun lockfile and regenerate the offline sources:
+Use `bun run flatpak:clean` to reclaim disk space or prepare a completely fresh build. Normal installs use `--force-clean` to reset the output directory while preserving the builder cache.
+
+After changing dependencies:
 
 ```sh
 bun install
@@ -84,20 +100,23 @@ bun run flatpak:sources
 bun run flatpak:install
 ```
 
-`scripts/flatpak-sources.ts` reads `bun.lock` and writes `generated-sources.json`. Flatpak downloads and verifies the declared npm registry archives using their lockfile SHA-512 checksums, then extracts them into Bun's package cache. The build installs from that cache with `--offline --frozen-lockfile`, without network access. CI checks that the generated sources match the lockfile.
+**Offline sources:** `scripts/flatpak-sources.ts` converts `bun.lock` into `generated-sources.json`. Flatpak verifies the archives against their SHA-512 checksums and extracts them into Bun's cache. Installation uses `--offline --frozen-lockfile`; CI checks that sources match the lockfile.
 
-The generator declares all locked registry packages, including development dependencies, so the cache can also support offline development checks. The installed app still contains only production dependencies. Git, local, custom-registry, and prerelease dependencies need generator support before they can be packaged; unsupported entries fail explicitly.
+- The cache includes all locked packages; the installed app contains only production dependencies.
+- Git, local, custom-registry, and prerelease dependencies need generator support. Unsupported entries fail explicitly.
+- Native development does not use `generated-sources.json`.
 
-When upgrading Bun, update `packageManager` and `engines` in `package.json` and the runtime URL and checksum in the manifest together. The generator targets the pinned Bun's extracted cache layout; verify a clean offline Flatpak build after an upgrade. Native development does not use `generated-sources.json`.
+**Bun upgrades:** Update `packageManager` and `engines` in `package.json`, plus the manifest's runtime URL and checksum. CI reads the package pin. Verify a clean offline Flatpak build: the generator depends on the pinned Bun's cache layout.
+
+Pome is not yet accepted on Flathub. This repository keeps the local manifest, generated sources, AppStream metadata, desktop files, and icons. After acceptance, release packaging will live in the Flathub repository; metadata and assets will remain here.
 
 ### Releases
 
-Prepare the release in a single pull request:
+Prepare each release in a single pull request:
 
-1. Finish the release changes on a branch. Bump `package.json` and add a matching release entry with the release date in `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
-2. If dependencies changed, run `bun install` and `bun run flatpak:sources` to update the lockfile and offline sources. The screenshot URL can keep pointing to an existing tag. If the screenshot changed, point it to the upcoming release tag so the tagged source contains the updated metadata.
-
-3. Run the checks and tests, then build and install the local Flatpak:
+1. Bump `package.json` and add a dated release entry in `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
+2. If dependencies changed, run `bun install` and `bun run flatpak:sources`. If the screenshot changed, point its metadata URL to the upcoming tag; otherwise keep the existing URL.
+3. Validate the release:
 
    ```sh
    bun install --frozen-lockfile
@@ -106,16 +125,16 @@ Prepare the release in a single pull request:
    bun run flatpak:install
    ```
 
-   Launch Pome and verify sign-in, mounting, and reconnecting after login before merging.
+   Test sign-in, mounting, and reconnection after login before merging.
 
-4. Merge the release pull request into `master`, then pull the merged commit:
+4. Merge the pull request and pull the release commit:
 
    ```sh
    git checkout master
    git pull --ff-only origin master
    ```
 
-5. Create and push an annotated tag from the release commit. Replace `vX.Y.Z` with the version prepared above:
+5. Create and push an annotated tag, replacing `vX.Y.Z`:
 
    ```sh
    release_tag=vX.Y.Z
@@ -123,7 +142,7 @@ Prepare the release in a single pull request:
    git push origin "$release_tag"
    ```
 
-No follow-up release pull request is needed in this repository. Once Pome is accepted on Flathub, update the release tag and commit in the Flathub repository's manifest, along with its generated dependency sources if dependencies changed. Publishing a source tag alone does not publish a Flathub update.
+After Flathub acceptance, update its manifest's release tag and commit, plus generated sources if dependencies changed. A source tag alone does not publish a Flathub update. No follow-up release pull request is needed here.
 
 ## Acknowledgments
 
