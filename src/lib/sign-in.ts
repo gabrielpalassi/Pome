@@ -87,6 +87,45 @@ export async function signIn(): Promise<SignInResult> {
     const page = (await browser.pages())[0] ?? (await browser.newPage());
     await maximizeWindow(page);
 
+    // Run in every new document, including Apple's cross-origin sign-in frame.
+    await page.evaluateOnNewDocument(() => {
+      const clickedButtons = new WeakSet<HTMLButtonElement>();
+      const style = document.createElement("style");
+      // extended_login is forced below, so this choice is already handled by Pome.
+      style.textContent = ".si-remember-password { display: none !important; }";
+
+      const updateSignIn = () => {
+        if (!style.isConnected && document.documentElement) {
+          document.documentElement.appendChild(style);
+        }
+
+        // Use structure rather than translated labels, just like .sign-in-button.
+        const button = document.querySelector<HTMLButtonElement>('.trust-browser button[type="submit"]');
+        if (
+          !button ||
+          button.disabled ||
+          button.getAttribute("aria-disabled") === "true" ||
+          button.closest('[aria-hidden="true"]') ||
+          !button.getClientRects().length ||
+          getComputedStyle(button).visibility !== "visible" ||
+          clickedButtons.has(button)
+        ) {
+          return;
+        }
+
+        clickedButtons.add(button);
+        button.click();
+      };
+
+      new MutationObserver(updateSignIn).observe(document, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["disabled", "aria-disabled", "aria-hidden", "class", "style"],
+      });
+      updateSignIn();
+    });
+
     // Force iCloud to issue a longer-lived trust token
     page.on("request", async (request) => {
       if (request.isInterceptResolutionHandled()) return;
