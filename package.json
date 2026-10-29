@@ -1,6 +1,6 @@
 {
   "name": "pome",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "iCloud Drive for your Linux desktop.",
   "type": "module",
   "packageManager": "bun@1.4.4",
