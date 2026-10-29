@@ -1,8 +1,8 @@
 import dbus from "dbus-next";
-import { APP_NAME, AUTOSTART_RESPONSE_TIMEOUT_MS } from "./constants.js";
-import { notifyAutostartFailure } from "./notifications.js";
-import { log } from "./utils.js";
-import type { PortalBackground, PortalMessageBus, PortalOptions, PortalResponseListener } from "./types.js";
+import { APP_NAME, AUTOSTART_RESPONSE_TIMEOUT_MS } from "./constants.ts";
+import { notifyAutostartFailure } from "./notifications.ts";
+import { log } from "./utils.ts";
+import type { PortalBackground, PortalMessageBus, PortalOptions, PortalResponseListener } from "./types.ts";
 
 function createHandleToken(): string {
   return `pome_${Date.now()}_${Math.random().toString(36).slice(2)}`;

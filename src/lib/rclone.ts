@@ -1,8 +1,5 @@
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
-import process from "node:process";
-import { APP_ID, BUNDLED_RCLONE, MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
+import { APP_ID, BUNDLED_RCLONE, MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.ts";
 import {
   commandExists,
   getHostHomeDir,
@@ -11,9 +8,9 @@ import {
   hostRun,
   hostSpawn,
   inFlatpak,
-} from "./host.js";
-import { log, shellQuote } from "./utils.js";
-import type { ICloudSession, RcloneProcess } from "./types.js";
+} from "./host.ts";
+import { log, shellQuote } from "./utils.ts";
+import type { ICloudSession, RcloneProcess } from "./types.ts";
 
 let executable: string | null = null;
 
@@ -31,8 +28,8 @@ export async function prepareRclone(): Promise<void> {
 
   // /app is private to the sandbox. Stage a copy the host can execute without
   // installing anything globally or downloading code at runtime.
-  const binary = await readFile(BUNDLED_RCLONE);
-  const digest = createHash("sha256").update(binary).digest("hex");
+  const binary = await Bun.file(BUNDLED_RCLONE).bytes();
+  const digest = new Bun.CryptoHasher("sha256").update(binary).digest("hex");
   const target = path.join(await getHostHomeDir(), ".var", "app", APP_ID, "data", "libexec", `rclone-${digest}`);
   const check = await hostRunWithOutput([
     "sh",
@@ -268,22 +265,33 @@ export async function createRcloneProcess(mountDir: string): Promise<RcloneProce
   }
 
   const args = [getRcloneExecutable(), "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
-  const rcloneProcess = hostSpawn(args) as RcloneProcess;
-  rcloneProcess.output = { stdout: "", stderr: "" };
+  try {
+    const child = hostSpawn(args);
+    const output = { stdout: "", stderr: "" };
 
-  // Keep logs visible while retaining enough output to classify auth failures
-  rcloneProcess.stdout?.on("data", (chunk) => {
-    const text = chunk.toString();
-    rcloneProcess.output.stdout += text;
-    process.stdout.write(text);
-  });
-  rcloneProcess.stderr?.on("data", (chunk) => {
-    const text = chunk.toString();
-    rcloneProcess.output.stderr += text;
-    process.stderr.write(text);
-  });
+    // Drain both streams while rclone runs. Wait for the final chunks before
+    // classifying an authentication failure or completing shutdown.
+    async function capture(stream: ReadableStream<Uint8Array>, channel: "stdout" | "stderr"): Promise<void> {
+      const decoder = new TextDecoder();
+      for await (const chunk of stream) {
+        output[channel] += decoder.decode(chunk, { stream: true });
+        await Bun.write(channel === "stdout" ? Bun.stdout : Bun.stderr, chunk);
+      }
+      output[channel] += decoder.decode();
+    }
 
-  return rcloneProcess;
+    const finished = Promise.all([child.exited, capture(child.stdout, "stdout"), capture(child.stderr, "stderr")])
+      .then(([code]) => code)
+      .catch((error) => {
+        log(`Could not read rclone output: ${error instanceof Error ? error.message : String(error)}`);
+        if (child.exitCode === null) child.kill();
+        return child.exited;
+      });
+    return Object.assign(child, { output, finished });
+  } catch (error) {
+    log(`Could not start rclone: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
 }
 
 export function needsSignIn(rcloneProcess: RcloneProcess): boolean {

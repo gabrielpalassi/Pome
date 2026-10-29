@@ -3,20 +3,25 @@
   "version": "0.3.0",
   "description": "iCloud Drive for your Linux desktop.",
   "type": "module",
+  "packageManager": "bun@1.4.4",
+  "engines": {
+    "bun": ">=1.4.4"
+  },
   "bin": {
     "pome": "dist/pome.js"
   },
   "scripts": {
-    "build": "tsc",
-    "flatpak-install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.local.yml",
-    "typecheck": "tsc --noEmit",
+    "bundle": "bun build ./src/pome.ts --target=bun --packages=external --minify-syntax --minify-whitespace --sourcemap=linked --outdir=dist",
+    "flatpak:sources": "bun scripts/flatpak-sources.ts",
+    "flatpak:install": "rm -rf build-dir .flatpak-builder && flatpak-builder --user --install --force-clean build-dir io.github.gabrielpalassi.Pome.local.yml && rm -rf build-dir .flatpak-builder",
+    "typecheck": "bun check",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "fmt": "prettier --check .",
-    "fmt:fix": "prettier --write .",
-    "check": "npm run typecheck && npm run lint && npm run fmt",
-    "check:fix": "npm run typecheck && npm run lint:fix && npm run fmt:fix",
-    "test": "npm run build && node --experimental-test-module-mocks --test tests/*.test.mjs"
+    "format": "bun fmt --check .",
+    "format:fix": "bun fmt .",
+    "verify": "bun run typecheck && bun run lint && bun run format",
+    "verify:fix": "bun run typecheck && bun run lint:fix && bun run format:fix",
+    "test": "bun test --no-script"
   },
   "dependencies": {
     "dbus-next": "0.10.2",
@@ -29,10 +34,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.4",
+    "@types/bun": "^1.4.4",
     "eslint": "^10.2.1",
-    "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.8.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.0"
   }

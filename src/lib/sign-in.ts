@@ -1,9 +1,9 @@
-import { updateSession } from "./rclone.js";
-import { log } from "./utils.js";
-import type { ICloudSession } from "./types.js";
+import { updateSession } from "./rclone.ts";
+import { log } from "./utils.ts";
+import type { ICloudSession } from "./types.ts";
 import type { Page } from "puppeteer-core";
-import { CHROME_EXECUTABLE_PATH, ICLOUD_URL, LOCAL_CHROME_EXECUTABLE_CANDIDATES } from "./constants.js";
-import { hostRunWithOutput, inFlatpak } from "./host.js";
+import { CHROME_EXECUTABLE_PATH, ICLOUD_URL, LOCAL_CHROME_EXECUTABLE_CANDIDATES } from "./constants.ts";
+import { hostRunWithOutput, inFlatpak } from "./host.ts";
 
 async function maximizeWindow(page: Page): Promise<void> {
   try {
@@ -45,7 +45,7 @@ function getCookieValue(cookie: string): string {
 }
 
 async function resolveChromeExecutablePath(): Promise<string> {
-  const configuredPath = process.env.POME_CHROME_EXECUTABLE_PATH?.trim();
+  const configuredPath = Bun.env.POME_CHROME_EXECUTABLE_PATH?.trim();
   if (configuredPath) return configuredPath;
 
   if (inFlatpak) return CHROME_EXECUTABLE_PATH;

@@ -1,67 +1,39 @@
-import fs from "node:fs";
 import path from "node:path";
-import process from "node:process";
-import { spawn } from "node:child_process";
-import { DRIVE_NAME } from "./constants.js";
-import { shellQuote } from "./utils.js";
-import type { CommandResult, HostSpawnOptions } from "./types.js";
+import { DRIVE_NAME } from "./constants.ts";
+import { shellQuote } from "./utils.ts";
+import type { CommandResult, HostSpawnOptions } from "./types.ts";
 
-export const inFlatpak = fs.existsSync("/.flatpak-info");
+export const inFlatpak = await Bun.file("/.flatpak-info").exists();
 
 export function hostSpawn(args: string[], options: HostSpawnOptions = {}) {
-  // Route host work through flatpak-spawn when Pome is sandboxed
-  const [command, commandArgs] = inFlatpak
-    ? ["flatpak-spawn", ["--host", "--watch-bus", ...args]]
-    : [args[0], args.slice(1)];
-  return spawn(command, commandArgs, {
-    stdio: options.stdio ?? "pipe",
-    env: { ...process.env, ...(options.env ?? {}) },
+  // Route host work through flatpak-spawn when Pome is sandboxed.
+  const cmd = inFlatpak ? ["flatpak-spawn", "--host", "--watch-bus", ...args] : args;
+  const input = typeof options.input === "string" ? new TextEncoder().encode(options.input) : options.input;
+  return Bun.spawn(cmd, {
+    stdin: input ?? "ignore",
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...Bun.env, ...options.env },
   });
 }
 
-export function hostRunWithOutput(args: string[], options: HostSpawnOptions = {}): Promise<CommandResult> {
-  return new Promise((resolve) => {
-    const childProcess = hostSpawn(args, options);
-    let stdout = "";
-    let stderr = "";
-
-    // Keep result construction in one place so errors and exits have the same shape
-    const finish = (code: number | null, error?: string): void => {
-      resolve({
-        ok: code === 0,
-        code,
-        stdout,
-        stderr: error ?? stderr,
-      });
-    };
-
-    // Collect output as text because callers inspect messages and command results
-    function appendStdout(chunk: Buffer): void {
-      stdout += chunk.toString();
-    }
-
-    function appendStderr(chunk: Buffer): void {
-      stderr += chunk.toString();
-    }
-
-    childProcess.stdout?.on("data", appendStdout);
-    childProcess.stderr?.on("data", appendStderr);
-    childProcess.on("error", (error) => finish(127, error.message));
-    childProcess.on("close", (code) => finish(code));
-
-    // Pass optional command input through stdin so sensitive values stay out of process listings
-    // A host command may fail before consuming its input (for example, a full disk).
-    childProcess.stdin?.on("error", (error) => finish(127, error.message));
-    childProcess.stdin?.end(options.input);
-  });
-}
-
-export function hostRun(args: string[], options: HostSpawnOptions = {}): Promise<boolean> {
-  return new Promise((resolve) => {
+export async function hostRunWithOutput(args: string[], options: HostSpawnOptions = {}): Promise<CommandResult> {
+  try {
     const child = hostSpawn(args, options);
-    child.on("error", () => resolve(false));
-    child.on("close", (code) => resolve(code === 0));
-  });
+    // Read both streams concurrently so either can exceed the pipe buffer.
+    const [code, stdout, stderr] = await Promise.all([
+      child.exited,
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+    ]);
+    return { ok: code === 0, code, stdout, stderr };
+  } catch (error) {
+    return { ok: false, code: 127, stdout: "", stderr: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export async function hostRun(args: string[], options: HostSpawnOptions = {}): Promise<boolean> {
+  return (await hostRunWithOutput(args, options)).ok;
 }
 
 export async function getHostHomeDir(): Promise<string> {
@@ -81,6 +53,8 @@ export async function getHostMountDir(): Promise<string> {
 }
 
 export async function commandExists(command: string): Promise<boolean> {
+  if (!inFlatpak) return Bun.which(command) !== null;
+
   const result = await hostRunWithOutput(["sh", "-lc", `command -v ${shellQuote(command)}`]);
   return result.ok && result.stdout.trim().length > 0;
 }

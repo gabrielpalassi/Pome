@@ -1,4 +1,3 @@
-import type { ChildProcess } from "node:child_process";
 import type dbus from "dbus-next";
 
 export interface CommandResult {
@@ -9,9 +8,8 @@ export interface CommandResult {
 }
 
 export interface HostSpawnOptions {
-  stdio?: "pipe" | "inherit" | "ignore";
-  env?: NodeJS.ProcessEnv;
-  input?: string | Buffer;
+  env?: Record<string, string | undefined>;
+  input?: string | Uint8Array;
 }
 
 export interface NotificationOptions {
@@ -58,6 +56,7 @@ export interface PortalResponseListener {
   cleanup(): void;
 }
 
-export type RcloneProcess = ChildProcess & {
+export type RcloneProcess = Bun.ReadableSubprocess & {
   output: ProcessOutput;
+  finished: Promise<number>;
 };

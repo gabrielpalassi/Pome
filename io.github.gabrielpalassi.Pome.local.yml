@@ -15,19 +15,14 @@ finish-args:
   # Allows flatpak-spawn --host so Pome can manage the user's host rclone mount
   - --talk-name=org.freedesktop.Flatpak
 modules:
-  - name: node
+  - name: bun
     buildsystem: simple
     sources:
       - type: archive
-        url: https://nodejs.org/download/release/v24.16.0/node-v24.16.0-linux-x64.tar.xz
-        sha256: d804845d34eddc21dc1092b519d643ef40b1f58ec5dec5c22b1f4bd8fabde6c9
-        strip-components: 1
+        url: https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64-baseline.zip
+        sha256: e0446eb55995772eb9894bebae9a6be368d985a8b9271ee124486f9946eedd76
     build-commands:
-      - mkdir -p /app/node /app/bin
-      - cp -a . /app/node
-      - ln -s /app/node/bin/node /app/bin/node
-      - ln -s /app/node/bin/npm /app/bin/npm
-      - ln -s /app/node/bin/npx /app/bin/npx
+      - install -Dm755 bun /app/bin/bun
   - name: rclone
     buildsystem: simple
     sources:
@@ -45,6 +40,12 @@ modules:
     sources:
       - type: dir
         path: .
+        skip:
+          - .git
+          - .flatpak-builder
+          - build-dir
+          - node_modules
+          - dist
       - type: archive
         url: https://storage.googleapis.com/chrome-for-testing-public/147.0.7727.57/linux64/chrome-linux64.zip
         sha256: 62a8d3e2d62c049f9dea6030e41302e50595ba21863eb60ed12d0487a415c1c4
@@ -52,18 +53,13 @@ modules:
       - generated-sources.json
     build-commands:
       - mkdir -p /app/lib/pome /app/bin /app/share/applications /app/share/metainfo
-      - cp -a package.json package-lock.json tsconfig.json src /app/lib/pome/
+      - cp -a package.json bun.lock bunfig.toml tsconfig.json src /app/lib/pome/
       - mkdir -p /app/lib/pome/chrome
       - cp -a chrome/. /app/lib/pome/chrome/
-      - cd /app/lib/pome && /app/node/bin/npm ci --offline --cache /run/build/pome/flatpak-node/npm-cache --omit=optional
+      - cd /app/lib/pome && bun install --offline --frozen-lockfile --production --ignore-scripts --cache-dir /run/build/pome/flatpak-bun/cache
+      - cd /app/lib/pome && bun run bundle
+      - rm -rf /app/lib/pome/src
       - test -x /app/lib/pome/chrome/chrome
-      - cd /app/lib/pome && /app/node/bin/npm run build
-      - cd /app/lib/pome && /app/node/bin/npm prune --omit=dev --omit=optional
-      - |
-        rm -rf /app/node/include /app/node/lib /app/node/share
-        rm -f /app/node/CHANGELOG.md /app/node/LICENSE /app/node/README.md
-        rm -f /app/node/bin/corepack /app/node/bin/npm /app/node/bin/npx
-        rm -f /app/bin/npm /app/bin/npx
       - chmod +x /app/lib/pome/dist/pome.js
       - ln -s /app/lib/pome/dist/pome.js /app/bin/pome
       - install -Dm644 data/io.github.gabrielpalassi.Pome.desktop /app/share/applications/io.github.gabrielpalassi.Pome.desktop

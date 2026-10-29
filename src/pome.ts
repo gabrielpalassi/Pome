@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 import process from "node:process";
 import {
@@ -7,8 +7,8 @@ import {
   MOUNT_READY_TIMEOUT_MS,
   REMOTE_NAME,
   TRY_AGAIN_WAIT_TIME_MS,
-} from "./lib/constants.js";
-import { getHostMountDir, inFlatpak } from "./lib/host.js";
+} from "./lib/constants.ts";
+import { getHostMountDir, inFlatpak } from "./lib/host.ts";
 import {
   notifyAlreadyRunning,
   notifyRcloneUnavailable,
@@ -18,8 +18,8 @@ import {
   notifySignInFailure,
   notifySuccess,
   notifyUpdateSessionFailure,
-} from "./lib/notifications.js";
-import { acquireSingleInstanceLock } from "./lib/lock.js";
+} from "./lib/notifications.ts";
+import { acquireSingleInstanceLock } from "./lib/lock.ts";
 import {
   prepareRclone,
   createMinimalRemote,
@@ -27,11 +27,11 @@ import {
   createRcloneProcess,
   isMountedAndReadable,
   needsSignIn,
-} from "./lib/rclone.js";
-import { ensureFlatpakAutostart } from "./lib/autostart.js";
-import { signIn } from "./lib/sign-in.js";
-import type { RcloneProcess } from "./lib/types.js";
-import { log, sleep } from "./lib/utils.js";
+} from "./lib/rclone.ts";
+import { ensureFlatpakAutostart } from "./lib/autostart.ts";
+import { signIn } from "./lib/sign-in.ts";
+import type { RcloneProcess } from "./lib/types.ts";
+import { log } from "./lib/utils.ts";
 
 //
 // Global state variables
@@ -51,15 +51,6 @@ function hasRcloneProcessExited(rcloneProcess: RcloneProcess): boolean {
   return rcloneProcess.exitCode !== null || rcloneProcess.signalCode !== null;
 }
 
-function waitForRcloneProcessExit(rcloneProcess: RcloneProcess): Promise<number | null> {
-  if (hasRcloneProcessExited(rcloneProcess)) return Promise.resolve(rcloneProcess.exitCode);
-
-  return new Promise<number | null>((resolve) => {
-    rcloneProcess.once("error", () => resolve(127));
-    rcloneProcess.once("close", resolve);
-  });
-}
-
 async function handleShutdownSignal(): Promise<void> {
   shutdownRequested = true;
 
@@ -67,7 +58,7 @@ async function handleShutdownSignal(): Promise<void> {
 
   // kill() only sends the signal, wait until rclone actually closes before exiting Pome
   rcloneProcess.kill();
-  await waitForRcloneProcessExit(rcloneProcess);
+  await rcloneProcess.finished;
 }
 
 async function handleRecoveryAction(action: string): Promise<void> {
@@ -81,20 +72,20 @@ async function handleRecoveryAction(action: string): Promise<void> {
 
   if (action === "restart") {
     notifyMountStart = true;
-    await sleep(TRY_AGAIN_WAIT_TIME_MS);
+    await Bun.sleep(TRY_AGAIN_WAIT_TIME_MS);
   }
 }
 
 async function waitForMountFailureOrRcloneProcessExit(rcloneProcess: RcloneProcess): Promise<number | null> {
   // Always listen for the rclone process to end
-  const exitPromise = waitForRcloneProcessExit(rcloneProcess);
+  const exitPromise = rcloneProcess.finished;
 
   // Keep checking for process exit, failed health check, or shutdown signal
   while (!shutdownRequested) {
     // Wait for either rclone to exit or the next health check.
     const result = await Promise.race([
       exitPromise,
-      sleep(MOUNT_HEALTH_CHECK_INTERVAL_MS).then(() => "check" as const),
+      Bun.sleep(MOUNT_HEALTH_CHECK_INTERVAL_MS).then(() => "check" as const),
     ]);
 
     if (result !== "check") return result;
@@ -180,7 +171,7 @@ while (!shutdownRequested) {
     const remainingWaitTime = mountReadyDeadline - Date.now();
     if (remainingWaitTime <= 0) break;
 
-    await sleep(Math.min(MOUNT_READY_POLL_INTERVAL_MS, remainingWaitTime));
+    await Bun.sleep(Math.min(MOUNT_READY_POLL_INTERVAL_MS, remainingWaitTime));
   }
 
   if (!mountReady && !hasRcloneProcessExited(rcloneProcess)) {
@@ -192,7 +183,7 @@ while (!shutdownRequested) {
   // Ready mounts keep health-checking, failed startups only wait for rclone to close
   const exitCode = mountReady
     ? await waitForMountFailureOrRcloneProcessExit(rcloneProcess)
-    : await waitForRcloneProcessExit(rcloneProcess);
+    : await rcloneProcess.finished;
   log(`rclone mount exited with code ${exitCode}.`);
 
   // If shutdown was requested, break the loop, otherwise notify the user of the failure

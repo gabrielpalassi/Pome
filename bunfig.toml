@@ -1,0 +1,14 @@
+[install]
+# dbus-next's optional native socket uses an obsolete build chain.
+# Its JavaScript Unix socket fallback is sufficient.
+optional = false
+
+[run]
+bun = true
+
+[test]
+root = "tests"
+
+[fmt]
+printWidth = 120
+ignorePatterns = ["build-dir/", "dist/", "node_modules/", "*.md"]

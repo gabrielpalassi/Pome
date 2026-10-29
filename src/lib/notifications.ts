@@ -1,7 +1,7 @@
 import dbus from "dbus-next";
-import { APP_ID, APP_NAME, DRIVE_NAME, NOTIFICATION_ACTION_TIMEOUT_MS, NOTIFICATION_ICON } from "./constants.js";
-import { log } from "./utils.js";
-import type { PortalNotification, NotificationOptions } from "./types.js";
+import { APP_ID, APP_NAME, DRIVE_NAME, NOTIFICATION_ACTION_TIMEOUT_MS, NOTIFICATION_ICON } from "./constants.ts";
+import { log } from "./utils.ts";
+import type { PortalNotification, NotificationOptions } from "./types.ts";
 
 async function notify(
   title: string,

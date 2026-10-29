@@ -1,5 +1,4 @@
 import js from "@eslint/js";
-import prettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
@@ -9,7 +8,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["src/**/*.ts"],
+    files: ["src/**/*.ts", "scripts/**/*.ts", "tests/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -26,5 +25,4 @@ export default tseslint.config(
       ],
     },
   },
-  prettier,
 );

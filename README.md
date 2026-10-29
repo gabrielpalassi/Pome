@@ -10,7 +10,7 @@ Pome keeps iCloud Drive available at `~/iCloud Drive` and reconnects when you lo
 
 The local Flatpak build currently targets x86-64 Linux and uses Wayland for the sign-in window. You will need:
 
-- Node.js 24 and npm for development commands (the Flatpak bundles its own Node.js)
+- Bun 1.4.4 for development commands (the Flatpak bundles the same version)
 - `flatpak` and `flatpak-builder`
 - host FUSE mount support (`fusermount3` or `fusermount`)
 - a working desktop notification portal
@@ -31,7 +31,7 @@ flatpak install flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.
 Build and install Pome locally:
 
 ```sh
-npm run flatpak-install
+bun run flatpak:install
 ```
 
 Run the local build:
@@ -47,12 +47,18 @@ Create a branch from the latest `master`, keep changes focused, and open a pull 
 Install dependencies and run the checks and tests:
 
 ```sh
-npm ci
-npm run check
-npm test
+bun install --frozen-lockfile
+bun run verify
+bun run test
 ```
 
-`npm run check` runs TypeScript, ESLint, and Prettier checks without changing files. `npm test` builds the app and runs the tests. Use `npm run check:fix` to apply lint and formatting fixes, or `npm run build` to build without running tests.
+`bun run verify` runs Bun's type checker and formatter plus ESLint without changing files. `bun run test` runs directly against the TypeScript sources; no compilation step is needed. Use `bun run verify:fix` to apply lint and formatting fixes. Run Pome directly with `bun src/pome.ts` when needed. Native runs require rclone and Chrome or Chromium.
+
+`bun check` and `bun fmt` invoke Bun's native tools; `bun run test` invokes Bun's native test runner. Use `bun run typecheck`, `bun run lint`, or `bun run format` for individual checks. The `lint:fix` and `format:fix` scripts apply fixes; `verify` and `verify:fix` combine the corresponding checks.
+
+`bun run bundle` builds `dist/pome.js` for production, targeting Bun with syntax and whitespace minification and an external source map. Dependencies stay external in `node_modules`. Development and tests continue to run TypeScript directly.
+
+Bun-specific settings, formatting options, and ignore patterns live in `bunfig.toml`. `tsconfig.json` configures type checking and editor support. The `typescript` development dependency supports ESLint's parser; `bun check` uses Bun's built-in checker. The Bun version is pinned in `package.json`, CI reads that pin, and the Flatpak manifest pins the matching runtime archive and checksum.
 
 Changes to packaging, autostart, notifications, sign-in, or host commands also need testing in the installed Flatpak. Build and launch it using the commands above, then exercise the affected desktop flow.
 
@@ -66,40 +72,38 @@ The rclone version, archive checksum, and license source are pinned in the local
 
 ### Flatpak packaging
 
-`npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml` to build from the working tree. It needs `generated-sources.json` to populate the npm cache for the offline Flatpak build. Native development with `npm ci` and `npm run build` does not use that file.
+`bun run flatpak:install` uses `io.github.gabrielpalassi.Pome.local.yml` to build from the working tree. It installs production dependencies offline and runs `bun run bundle` inside the build sandbox. The app ships Bun, the optimized JavaScript bundle and source map, and production dependencies; the TypeScript source tree is removed after bundling. Optional dependencies and lifecycle scripts are disabled. After a successful installation, the script removes the local build directory and Flatpak builder cache.
 
-This repository keeps the local build manifest and its generated npm sources. Pome has not yet been accepted on Flathub; release packaging will be maintained in the Flathub repository after acceptance. AppStream metadata, desktop files, and icons stay here and are installed from the tagged source release.
+This repository keeps the local build manifest and its generated dependency sources. Pome has not yet been accepted on Flathub; release packaging will be maintained in the Flathub repository after acceptance. AppStream metadata, desktop files, and icons stay here and are installed from the tagged source release.
 
-If npm dependencies change, use `flatpak-node-generator` to update the offline sources and verify the Flatpak build:
+After changing dependencies, update the Bun lockfile and regenerate the offline sources:
 
 ```sh
-npm install --package-lock-only --lockfile-version=2
-flatpak-node-generator npm package-lock.json -o generated-sources.json
-npm run flatpak-install
+bun install
+bun run flatpak:sources
+bun run flatpak:install
 ```
 
-Keep `package-lock.json` at lockfile version 2 so `flatpak-node-generator` can generate complete offline npm sources.
+`scripts/flatpak-sources.ts` reads `bun.lock` and writes `generated-sources.json`. Flatpak downloads and verifies the declared npm registry archives using their lockfile SHA-512 checksums, then extracts them into Bun's package cache. The build installs from that cache with `--offline --frozen-lockfile`, without network access. CI checks that the generated sources match the lockfile.
+
+The generator declares all locked registry packages, including development dependencies, so the cache can also support offline development checks. The installed app still contains only production dependencies. Git, local, custom-registry, and prerelease dependencies need generator support before they can be packaged; unsupported entries fail explicitly.
+
+When upgrading Bun, update `packageManager` and `engines` in `package.json` and the runtime URL and checksum in the manifest together. The generator targets the pinned Bun's extracted cache layout; verify a clean offline Flatpak build after an upgrade. Native development does not use `generated-sources.json`.
 
 ### Releases
 
 Prepare the release in a single pull request:
 
 1. Finish the release changes on a branch. Bump `package.json` and add a matching release entry with the release date in `data/io.github.gabrielpalassi.Pome.metainfo.xml`.
-2. Update the lockfile so its package version matches:
-
-   ```sh
-   npm install --package-lock-only --lockfile-version=2
-   ```
-
-   If dependencies changed, also regenerate `generated-sources.json` as described above. The screenshot URL can keep pointing to an existing tag. If the screenshot changed, point it to the upcoming release tag so the tagged source contains the updated metadata.
+2. If dependencies changed, run `bun install` and `bun run flatpak:sources` to update the lockfile and offline sources. The screenshot URL can keep pointing to an existing tag. If the screenshot changed, point it to the upcoming release tag so the tagged source contains the updated metadata.
 
 3. Run the checks and tests, then build and install the local Flatpak:
 
    ```sh
-   npm ci
-   npm run check
-   npm test
-   npm run flatpak-install
+   bun install --frozen-lockfile
+   bun run verify
+   bun run test
+   bun run flatpak:install
    ```
 
    Launch Pome and verify sign-in, mounting, and reconnecting after login before merging.
@@ -119,7 +123,7 @@ Prepare the release in a single pull request:
    git push origin "$release_tag"
    ```
 
-No follow-up release pull request is needed in this repository. Once Pome is accepted on Flathub, update the release tag and commit in the Flathub repository's manifest, along with its generated npm sources if dependencies changed. Publishing a source tag alone does not publish a Flathub update.
+No follow-up release pull request is needed in this repository. Once Pome is accepted on Flathub, update the release tag and commit in the Flathub repository's manifest, along with its generated dependency sources if dependencies changed. Publishing a source tag alone does not publish a Flathub update.
 
 ## Acknowledgments
 
