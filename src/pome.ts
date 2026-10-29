@@ -21,13 +21,13 @@ import {
 } from "./lib/notifications.js";
 import { acquireSingleInstanceLock } from "./lib/lock.js";
 import {
+  prepareRclone,
   createMinimalRemote,
   hasRemote,
   createRcloneProcess,
   isMountedAndReadable,
   needsSignIn,
 } from "./lib/rclone.js";
-import { prepareRclone } from "./lib/rclone-binary.js";
 import { ensureFlatpakAutostart } from "./lib/autostart.js";
 import { signIn } from "./lib/sign-in.js";
 import type { RcloneProcess } from "./lib/types.js";

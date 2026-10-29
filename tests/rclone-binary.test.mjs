@@ -19,6 +19,13 @@ test("bundled helper is staged, reused, repaired, and upgraded", async () => {
       inFlatpak: true,
       commandExists: async () => false,
       getHostHomeDir: async () => home,
+      getHostUserConfigDir: async () => path.join(home, ".config"),
+      hostRun: async () => {
+        throw new Error("Unexpected hostRun during binary preparation");
+      },
+      hostSpawn: () => {
+        throw new Error("Unexpected hostSpawn during binary preparation");
+      },
       hostRunWithOutput: async (args, options = {}) => {
         if (failInstall && options.input) return { ok: false, stderr: "disk full", stdout: "" };
         const result = spawnSync(args[0], args.slice(1), { input: options.input, encoding: "utf8" });
@@ -28,7 +35,7 @@ test("bundled helper is staged, reused, repaired, and upgraded", async () => {
   });
 
   try {
-    const { prepareRclone, getRcloneExecutable } = await import("../dist/lib/rclone-binary.js");
+    const { prepareRclone, getRcloneExecutable } = await import("../dist/lib/rclone.js");
     assert.throws(getRcloneExecutable, /not been prepared/);
     await prepareRclone();
     const original = getRcloneExecutable();
