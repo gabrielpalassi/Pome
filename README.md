@@ -6,8 +6,6 @@ Pome gives Linux desktops a quiet iCloud Drive folder.
 
 Pome keeps iCloud Drive available at `~/iCloud Drive` and reconnects when you log in. On first launch, a desktop notification asks you to sign in through the browser. If the connection needs attention later, notifications let you retry or sign in again.
 
-The Flatpak includes rclone, so there is no separate rclone installation or first-launch download.
-
 ## Building Locally
 
 Local builds use Flatpak Builder. You will need:
@@ -115,3 +113,7 @@ git push origin v1.0.0
 ```sh
 git rev-parse HEAD
 ```
+
+## Acknowledgments
+
+Pome is powered by [rclone](https://rclone.org/) under the hood. Thanks to the rclone contributors for making its iCloud Drive integration possible.
