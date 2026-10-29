@@ -2,22 +2,23 @@ import path from "node:path";
 import process from "node:process";
 import { MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
 import { commandExists, getHostUserConfigDir, hostRunWithOutput, hostRun, hostSpawn } from "./host.js";
+import { getRcloneExecutable } from "./rclone-binary.js";
 import { log, shellQuote } from "./utils.js";
 import type { ICloudSession, RcloneProcess } from "./types.js";
 
 export async function hasRemote(): Promise<boolean> {
-  const result = await hostRunWithOutput(["rclone", "listremotes"]);
+  const result = await hostRunWithOutput([getRcloneExecutable(), "listremotes"]);
   return result.ok && result.stdout.split(/\r?\n/).includes(`${REMOTE_NAME}:`);
 }
 
 export async function hasSavedSession(): Promise<boolean> {
-  const result = await hostRunWithOutput(["rclone", "config", "show", REMOTE_NAME]);
+  const result = await hostRunWithOutput([getRcloneExecutable(), "config", "show", REMOTE_NAME]);
   return result.ok && /^\s*cookies\s*=.+$/m.test(result.stdout) && /^\s*trust_token\s*=.+$/m.test(result.stdout);
 }
 
 async function getRcloneConfigPath(): Promise<string> {
   // Ask rclone first to respect host-side config overrides
-  const paths = await hostRunWithOutput(["rclone", "config", "paths"]);
+  const paths = await hostRunWithOutput([getRcloneExecutable(), "config", "paths"]);
   const match = paths.stdout.match(/^Config file:\s*(.+)$/m);
   return paths.ok && match?.[1] ? match[1].trim() : path.join(await getHostUserConfigDir(), "rclone", "rclone.conf");
 }
@@ -194,7 +195,7 @@ export async function createRcloneProcess(mountDir: string): Promise<RcloneProce
     return null;
   }
 
-  const args = ["rclone", "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
+  const args = [getRcloneExecutable(), "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
   const rcloneProcess = hostSpawn(args) as RcloneProcess;
   rcloneProcess.output = { stdout: "", stderr: "" };
 

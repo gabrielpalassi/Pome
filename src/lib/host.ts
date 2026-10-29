@@ -50,6 +50,8 @@ export function hostRunWithOutput(args: string[], options: HostSpawnOptions = {}
     childProcess.on("close", (code) => finish(code));
 
     // Pass optional command input through stdin so sensitive values stay out of process listings
+    // A host command may fail before consuming its input (for example, a full disk).
+    childProcess.stdin?.on("error", (error) => finish(127, error.message));
     childProcess.stdin?.end(options.input);
   });
 }
@@ -62,7 +64,7 @@ export function hostRun(args: string[], options: HostSpawnOptions = {}): Promise
   });
 }
 
-async function getHostHomeDir(): Promise<string> {
+export async function getHostHomeDir(): Promise<string> {
   const result = await hostRunWithOutput(["sh", "-lc", 'printf %s "$HOME"']);
   const home = result.stdout.trim();
   if (!result.ok || !home) throw new Error("Could not resolve host home directory");

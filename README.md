@@ -8,33 +8,9 @@ It runs in the background, mounts iCloud Drive through `rclone`, and keeps it av
 
 ## Running Pome
 
-Install `rclone` before running Pome. Pome requires `rclone` 1.69.0 or newer (the first release with iCloud Drive support), check your installed version with:
+The Flatpak includes rclone; no separate rclone installation or first-launch download is needed. Your Linux system still needs FUSE mount support (`fusermount3` or `fusermount`).
 
-```sh
-rclone version
-```
-
-The safest way to get a recent version is the official `rclone` installer:
-
-```sh
-sudo -v
-curl https://rclone.org/install.sh | sudo bash
-```
-
-If your distribution already ships `rclone` 1.69.0 or newer, you can install it from your package manager instead:
-
-```sh
-# Fedora
-sudo dnf install rclone
-
-# Ubuntu/Debian
-sudo apt install rclone
-
-# Arch Linux
-sudo pacman -S rclone
-```
-
-Then run Pome from your app launcher, or start it manually:
+Run Pome from your app launcher, or start it manually:
 
 ```sh
 flatpak run io.github.gabrielpalassi.Pome
@@ -56,7 +32,7 @@ Local builds use Flatpak Builder. You will need:
 - `flatpak`
 - `flatpak-builder`
 - `flatpak-node-generator`
-- `rclone`
+- host FUSE mount support (`fusermount3` or `fusermount`)
 - a working desktop notification portal
 - the Freedesktop runtime and SDK used by the manifest
 
@@ -88,6 +64,10 @@ flatpak run io.github.gabrielpalassi.Pome
 
 Keep changes focused and follow the existing TypeScript style. Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
 
+The Flatpak stages its bundled rclone in `~/.var/app/io.github.gabrielpalassi.Pome/data/libexec/`, using a content hash in the filename. Pome verifies and reuses that copy on subsequent launches, and stages a new copy when the bundled binary changes. It runs outside the sandbox to keep `~/iCloud Drive` available to other applications, while continuing to use the host's existing rclone configuration. Native development runs still require rclone on `PATH`.
+
+The rclone version, archive checksum, and license source are pinned in both Flatpak manifests. Update them together when upgrading rclone. Like the existing Node and Chrome bundles, this archive targets x86-64 Linux.
+
 For regular code changes:
 
 1. Create a branch from the latest `master`.
@@ -99,6 +79,7 @@ For regular code changes:
 ```sh
 npm ci
 npm run check
+npm test
 npm run build
 ```
 

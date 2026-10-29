@@ -8,10 +8,10 @@ import {
   REMOTE_NAME,
   TRY_AGAIN_WAIT_TIME_MS,
 } from "./lib/constants.js";
-import { commandExists, getHostMountDir, inFlatpak } from "./lib/host.js";
+import { getHostMountDir, inFlatpak } from "./lib/host.js";
 import {
   notifyAlreadyRunning,
-  notifyMissingRclone,
+  notifyRcloneUnavailable,
   notifySignInRequired,
   notifyMountFailure,
   notifySessionExpired,
@@ -27,6 +27,7 @@ import {
   isMountedAndReadable,
   needsSignIn,
 } from "./lib/rclone.js";
+import { prepareRclone } from "./lib/rclone-binary.js";
 import { ensureFlatpakAutostart } from "./lib/autostart.js";
 import { signIn } from "./lib/sign-in.js";
 import type { RcloneProcess } from "./lib/types.js";
@@ -122,10 +123,12 @@ if (!(await acquireSingleInstanceLock())) {
 // Ensure the app is set to autostart if running in a Flatpak
 if (inFlatpak) ensureFlatpakAutostart();
 
-// Check for rclone
-if (!(await commandExists("rclone"))) {
-  log("rclone is not installed or is not available on PATH.");
-  await notifyMissingRclone();
+// Prepare the bundled host executable before any remote or mount commands.
+try {
+  await prepareRclone();
+} catch (error) {
+  log(`Could not prepare rclone: ${error instanceof Error ? error.message : String(error)}`);
+  await notifyRcloneUnavailable();
   process.exit(1);
 }
 

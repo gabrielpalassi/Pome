@@ -28,6 +28,18 @@ modules:
       - ln -s /app/node/bin/node /app/bin/node
       - ln -s /app/node/bin/npm /app/bin/npm
       - ln -s /app/node/bin/npx /app/bin/npx
+  - name: rclone
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://downloads.rclone.org/v1.75.2/rclone-v1.75.2-linux-amd64.zip
+        sha256: 349ac8fba6ff65d6247043f1750cdcb518ec5d500ef91463a10d37c0ccdf3702
+      - type: file
+        url: https://raw.githubusercontent.com/rclone/rclone/v1.75.2/COPYING
+        sha256: 8cd2e9e750b90a04b7d82dbbca3930c696ae0309d7c10464f90a44f45754cd04
+    build-commands:
+      - install -Dm755 rclone /app/lib/pome/rclone
+      - install -Dm644 COPYING /app/share/licenses/rclone/COPYING
   - name: pome
     buildsystem: simple
     sources:
