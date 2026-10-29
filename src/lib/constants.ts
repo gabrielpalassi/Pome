@@ -4,6 +4,7 @@ export const APP_DESCRIPTION = "iCloud Drive for your Linux desktop.";
 export const NOTIFICATION_ICON = `${APP_ID}.notification`;
 export const REMOTE_NAME = "iclouddrive";
 export const REMOTE = `${REMOTE_NAME}:`;
+export const BUNDLED_RCLONE = "/app/lib/pome/rclone";
 export const DRIVE_NAME = "iCloud Drive";
 export const MOUNT_FLAGS = ["--vfs-cache-mode", "full", "--dir-cache-time", "30s"];
 export const MOUNT_HEALTH_CHECK_INTERVAL_MS = 30 * 1000;

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { APP_ID, MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
+import { APP_ID, BUNDLED_RCLONE, MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
 import {
   commandExists,
   getHostHomeDir,
@@ -15,7 +15,6 @@ import {
 import { log, shellQuote } from "./utils.js";
 import type { ICloudSession, RcloneProcess } from "./types.js";
 
-const BUNDLED_RCLONE = "/app/lib/pome/rclone";
 let executable: string | null = null;
 
 export function getRcloneExecutable(): string {
