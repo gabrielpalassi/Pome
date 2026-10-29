@@ -1,6 +1,6 @@
 {
   "name": "pome",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "iCloud Drive for your Linux desktop.",
   "type": "module",
   "bin": {
@@ -15,7 +15,8 @@
     "fmt": "prettier --check .",
     "fmt:fix": "prettier --write .",
     "check": "npm run typecheck && npm run lint && npm run fmt",
-    "check:fix": "npm run typecheck && npm run lint:fix && npm run fmt:fix"
+    "check:fix": "npm run typecheck && npm run lint:fix && npm run fmt:fix",
+    "test": "npm run build && node --experimental-test-module-mocks --test tests/*.test.mjs"
   },
   "dependencies": {
     "dbus-next": "0.10.2",

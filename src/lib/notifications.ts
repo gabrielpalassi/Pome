@@ -77,10 +77,10 @@ async function notify(
   }
 }
 
-export async function notifyMissingRclone(): Promise<void> {
+export async function notifyRcloneUnavailable(): Promise<void> {
   await notify(
-    `${APP_NAME} needs a file sync helper`,
-    `Install rclone on this computer, then open ${APP_NAME} again.`,
+    `${APP_NAME} could not start its file sync helper`,
+    `Try reopening ${APP_NAME}. If the problem continues, reinstall the app.`,
     { critical: true },
   );
 }

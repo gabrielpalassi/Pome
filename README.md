@@ -4,59 +4,15 @@ Pome gives Linux desktops a quiet iCloud Drive folder.
 
 <img src="assets/screenshot.png" alt="Pome screenshot" width="640">
 
-It runs in the background, mounts iCloud Drive through `rclone`, and keeps it available at `~/iCloud Drive`. When the connection needs attention, Pome lets you respond from desktop notifications: retry the mount, sign in again, or leave it waiting in the background.
-
-## Running Pome
-
-Install `rclone` before running Pome. Pome requires `rclone` 1.69.0 or newer (the first release with iCloud Drive support), check your installed version with:
-
-```sh
-rclone version
-```
-
-The safest way to get a recent version is the official `rclone` installer:
-
-```sh
-sudo -v
-curl https://rclone.org/install.sh | sudo bash
-```
-
-If your distribution already ships `rclone` 1.69.0 or newer, you can install it from your package manager instead:
-
-```sh
-# Fedora
-sudo dnf install rclone
-
-# Ubuntu/Debian
-sudo apt install rclone
-
-# Arch Linux
-sudo pacman -S rclone
-```
-
-Then run Pome from your app launcher, or start it manually:
-
-```sh
-flatpak run io.github.gabrielpalassi.Pome
-```
-
-On first launch, Pome prepares an iCloud Drive remote for `rclone` and asks you to sign in. Click `Sign In` in the notification, complete the browser sign-in, and Pome will connect your iCloud Drive folder.
-
-After the first launch, Pome adds itself to your desktop autostart entries so it can reconnect iCloud Drive when you log in.
-
-If iCloud needs attention later, Pome will show a notification with actions:
-
-- `Try Again` retries the mount.
-- `Sign In` refreshes your iCloud session.
+Pome keeps iCloud Drive available at `~/iCloud Drive` and reconnects when you log in. On first launch, a desktop notification asks you to sign in through the browser. If the connection needs attention later, notifications let you retry or sign in again.
 
 ## Building Locally
 
 Local builds use Flatpak Builder. You will need:
 
-- `flatpak`
-- `flatpak-builder`
-- `flatpak-node-generator`
-- `rclone`
+- Node.js and npm (the Flatpak bundles Node.js 24)
+- `flatpak` and `flatpak-builder`
+- host FUSE mount support (`fusermount3` or `fusermount`)
 - a working desktop notification portal
 - the Freedesktop runtime and SDK used by the manifest
 
@@ -86,25 +42,33 @@ flatpak run io.github.gabrielpalassi.Pome
 
 ## Development
 
-Keep changes focused and follow the existing TypeScript style. Pome intentionally keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Prefer portals for desktop integration when one exists, and keep host-side commands limited to work that truly needs to happen outside the sandbox.
+Create a branch from the latest `master`, keep changes focused, and open a pull request when ready. Follow the existing TypeScript style and prefer portals for desktop integration.
 
-For regular code changes:
-
-1. Create a branch from the latest `master`.
-2. Install Node dependencies.
-3. Make the code change.
-4. Run the project checks and build.
-5. Open a pull request.
+Install dependencies and run the checks and tests:
 
 ```sh
 npm ci
 npm run check
-npm run build
+npm test
 ```
 
-`npm run check` type-checks the code, applies ESLint fixes, and formats files with Prettier.
+`npm run check` runs TypeScript, ESLint, and Prettier checks without changing files. `npm test` builds the app and runs the tests. Use `npm run check:fix` to apply lint and formatting fixes, or `npm run build` to build without running tests.
 
-If npm dependencies changed, keep the Flatpak npm sources in sync and confirm the Flatpak can build offline:
+Changes to packaging, autostart, notifications, sign-in, or host commands also need testing in the installed Flatpak. Build and launch it using the commands above, then exercise the affected desktop flow.
+
+### Host integration
+
+Pome keeps most host interaction in `src/lib/host.ts`, `src/lib/rclone.ts`, and portal-specific helpers. Keep host-side commands limited to work that needs to happen outside the sandbox.
+
+The Flatpak stages its bundled rclone in `~/.var/app/io.github.gabrielpalassi.Pome/data/libexec/`, using a content hash in the filename. Pome verifies and reuses that copy on subsequent launches, and stages a new copy when the bundled binary changes. It runs outside the sandbox to keep `~/iCloud Drive` available to other applications, while continuing to use the host's existing rclone configuration. Native development runs still require rclone on `PATH`.
+
+The rclone version, archive checksum, and license source are pinned in both Flatpak manifests. Update them together when upgrading rclone. Like the existing Node and Chrome bundles, this archive targets x86-64 Linux.
+
+### Flatpak packaging
+
+`npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml` to build from the working tree. The release manifest, `io.github.gabrielpalassi.Pome.yml`, builds from a published Git tag.
+
+If npm dependencies change, use `flatpak-node-generator` to update the offline sources and verify the Flatpak build:
 
 ```sh
 npm install --package-lock-only --lockfile-version=2
@@ -113,15 +77,6 @@ npm run flatpak-install
 ```
 
 Keep `package-lock.json` at lockfile version 2 so `flatpak-node-generator` can generate complete offline npm sources.
-
-If the change touches Flatpak packaging, autostart, notifications, sign-in, or host commands, build and run the installed Flatpak, then test the affected desktop flow from inside the sandbox:
-
-```sh
-npm run flatpak-install
-flatpak run io.github.gabrielpalassi.Pome
-```
-
-The main Flatpak manifest builds Pome from a tagged Git commit. Keep the local development manifest separate: `npm run flatpak-install` uses `io.github.gabrielpalassi.Pome.local.yml`, while `io.github.gabrielpalassi.Pome.yml` should point at a pushed release tag.
 
 ### Releases
 
@@ -158,3 +113,7 @@ git push origin v1.0.0
 ```sh
 git rev-parse HEAD
 ```
+
+## Acknowledgments
+
+Pome is powered by [rclone](https://rclone.org/) under the hood. Thanks to the rclone contributors for making its iCloud Drive integration possible.

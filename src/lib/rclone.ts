@@ -1,23 +1,96 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import { MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
-import { commandExists, getHostUserConfigDir, hostRunWithOutput, hostRun, hostSpawn } from "./host.js";
+import { APP_ID, BUNDLED_RCLONE, MOUNT_FLAGS, REMOTE, REMOTE_NAME } from "./constants.js";
+import {
+  commandExists,
+  getHostHomeDir,
+  getHostUserConfigDir,
+  hostRunWithOutput,
+  hostRun,
+  hostSpawn,
+  inFlatpak,
+} from "./host.js";
 import { log, shellQuote } from "./utils.js";
 import type { ICloudSession, RcloneProcess } from "./types.js";
 
+let executable: string | null = null;
+
+export function getRcloneExecutable(): string {
+  if (!executable) throw new Error("rclone has not been prepared");
+  return executable;
+}
+
+export async function prepareRclone(): Promise<void> {
+  if (!inFlatpak) {
+    if (!(await commandExists("rclone"))) throw new Error("Native development requires rclone on PATH");
+    executable = "rclone";
+    return;
+  }
+
+  // /app is private to the sandbox. Stage a copy the host can execute without
+  // installing anything globally or downloading code at runtime.
+  const binary = await readFile(BUNDLED_RCLONE);
+  const digest = createHash("sha256").update(binary).digest("hex");
+  const target = path.join(await getHostHomeDir(), ".var", "app", APP_ID, "data", "libexec", `rclone-${digest}`);
+  const check = await hostRunWithOutput([
+    "sh",
+    "-c",
+    'test -x "$1" && test "$(sha256sum -- "$1" | cut -d " " -f 1)" = "$2"',
+    "sh",
+    target,
+    digest,
+  ]);
+
+  if (!check.ok) {
+    const install = await hostRunWithOutput(
+      [
+        "sh",
+        "-c",
+        `
+set -eu
+umask 077
+target=$1
+digest=$2
+dir=$(dirname -- "$target")
+mkdir -p -- "$dir"
+tmp=$(mktemp "$dir/.rclone.XXXXXX")
+trap 'rm -f -- "$tmp"' EXIT
+cat > "$tmp"
+test "$(sha256sum -- "$tmp" | cut -d ' ' -f 1)" = "$digest"
+chmod 700 "$tmp"
+mv -f -- "$tmp" "$target"
+trap - EXIT
+`,
+        "sh",
+        target,
+        digest,
+      ],
+      { input: binary },
+    );
+    if (!install.ok) throw new Error(`Could not stage bundled rclone: ${install.stderr.trim()}`);
+  }
+
+  const version = await hostRunWithOutput([target, "version"]);
+  if (!version.ok) throw new Error(`Could not execute bundled rclone: ${version.stderr.trim()}`);
+  executable = target;
+  log(`Using bundled ${version.stdout.split(/\r?\n/, 1)[0]}.`);
+}
+
 export async function hasRemote(): Promise<boolean> {
-  const result = await hostRunWithOutput(["rclone", "listremotes"]);
+  const result = await hostRunWithOutput([getRcloneExecutable(), "listremotes"]);
   return result.ok && result.stdout.split(/\r?\n/).includes(`${REMOTE_NAME}:`);
 }
 
 export async function hasSavedSession(): Promise<boolean> {
-  const result = await hostRunWithOutput(["rclone", "config", "show", REMOTE_NAME]);
+  const result = await hostRunWithOutput([getRcloneExecutable(), "config", "show", REMOTE_NAME]);
   return result.ok && /^\s*cookies\s*=.+$/m.test(result.stdout) && /^\s*trust_token\s*=.+$/m.test(result.stdout);
 }
 
 async function getRcloneConfigPath(): Promise<string> {
   // Ask rclone first to respect host-side config overrides
-  const paths = await hostRunWithOutput(["rclone", "config", "paths"]);
+  const paths = await hostRunWithOutput([getRcloneExecutable(), "config", "paths"]);
   const match = paths.stdout.match(/^Config file:\s*(.+)$/m);
   return paths.ok && match?.[1] ? match[1].trim() : path.join(await getHostUserConfigDir(), "rclone", "rclone.conf");
 }
@@ -194,7 +267,7 @@ export async function createRcloneProcess(mountDir: string): Promise<RcloneProce
     return null;
   }
 
-  const args = ["rclone", "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
+  const args = [getRcloneExecutable(), "mount", REMOTE, mountDir, ...MOUNT_FLAGS];
   const rcloneProcess = hostSpawn(args) as RcloneProcess;
   rcloneProcess.output = { stdout: "", stderr: "" };
 

@@ -11,7 +11,7 @@ export interface CommandResult {
 export interface HostSpawnOptions {
   stdio?: "pipe" | "inherit" | "ignore";
   env?: NodeJS.ProcessEnv;
-  input?: string;
+  input?: string | Buffer;
 }
 
 export interface NotificationOptions {
